@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --white: #fff;
+  --black: #000;
+  --gray-50: #f9f9f9;
+  --gray-100: #ececec;
+  --gray-200: #cdcdcd;
+  --gray-300: #b4b4b4;
+  --gray-400: #9b9b9b;
+  --gray-500: #676767;
+  --gray-600: #424242;
+  --gray-700: #2f2f2f;
+  --gray-800: #212121;
+  --gray-900: #171717;
+  --gray-950: #0d0d0d;
+  --brand-purple: #ab68ff;
+}
+.dark {
+  --text-primary: var(--gray-100);
+  --text-secondary: var(--gray-300);
+  --text-tertiary: var(--gray-500);
+  --text-quaternary: var(--gray-700);
+  --border-light: hsla(0,0%,100%,.1);
+  --border-medium: hsla(0,0%,100%,.15);
+  --border-heavy: hsla(0,0%,100%,.2);
+  --border-xheavy: hsla(0,0%,100%,.25);
+  --main-surface-primary: var(--gray-800);
+  --main-surface-secondary: var(--gray-700);
+  --main-surface-tertiary: var(--gray-600);
+  --sidebar-surface-primary: var(--gray-900);
+  --sidebar-surface-secondary: var(--gray-800);
+  --sidebar-surface-tertiary: var(--gray-700);
+  --link: #7ab7ff;
+  --link-hover: #5e83b3;
+}
+.light {
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-700);
+  --text-tertiary: var(--gray-500);
+  --text-quaternary: var(--gray-300);
+  --border-light: hsla(0,0%,0%,.1);
+  --border-medium: hsla(0,0%,0%,.15);
+  --border-heavy: hsla(0,0%,0%,.2);
+  --border-xheavy: hsla(0,0%,0%,.25);
+  --main-surface-primary: var(--gray-50);
+  --main-surface-secondary: var(--gray-100);
+  --main-surface-tertiary: var(--gray-200);
+  --sidebar-surface-primary: var(--gray-50);
+  --sidebar-surface-secondary: var(--gray-100);
+  --sidebar-surface-tertiary: var(--gray-200);
+  --link: #0070f3;
+  --link-hover: #0053b3;
+}
+.btn {
+  align-items: center;
+  border-color: transparent;
+  border-radius: .5rem;
+  border-width: 1px;
+  display: inline-flex;
+  font-size: .875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  padding: .5rem .75rem;
+  pointer-events: auto;
+}
+.btn-neutral {
+  background-color: #fff;
+  background-color: var(--main-surface-primary);
+  border-color: rgba(0,0,0,.15);
+  border-color: var(--gray-600);
+  border-width: 1px;
+  color: #0d0d0d;
+  color: var(--text-primary);
+  font-size: .875rem;
+  line-height: 1.35rem;
+}
+.icon-md {
+  stroke-width: 1.5;
+}
+.text-white {
+  --tw-text-opacity: 1;
+  color: rgba(255,255,255,var(--tw-text-opacity));
+}
+.isVisible {
+  display: none;
+}
+.adptView {
+  flex-shrink: 0;
+  overflow-x: hidden;
+  z-index: 50;
+  width: 260px;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    color: white;
+    background: #212121;
+  }
+
+  .chat-history {
+    color: white;
+    background: #171717; /* Set chat-history background color for dark theme */
+  }
+  
+  .hover-light-dark {
+    &:hover {
+      background-color: var(--gray-800);
+    }
+  }
+  .sbOrigin {
+    transform: translateY(0.15rem) rotate(0deg) translateZ(0px);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    background: var(--gray-700);
+  }
+
+  .sbRotateUp {
+    transform: translateY(0.15rem) rotate(15deg) translateZ(0px);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    background: var(--gray-200);
+  }
+  .sbRotateDown {
+    transform: translateY(-0.15rem) rotate(-15deg) translateZ(0px);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    background: var(--gray-200);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  body {
+    color: black;
+    background: #ffffff;
+  }
+
+  .chat-history {
+    color: black;
+    background: #f9f9f9; /* Set chat-history background color for light theme */
+  }
+
+  .hover-light-dark {
+    &:hover {
+      background-color: var(--gray-200);
+    }
+  }
+  .sbOrigin {
+    transform: translateY(0.15rem) rotate(0deg) translateZ(0px);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    background: var(--gray-200);
+  }
+  .sbRotateUp {
+    transform: translateY(0.15rem) rotate(15deg) translateZ(0px);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    background: var(--gray-700);
+  }
+  .sbRotateDown {
+    transform: translateY(-0.15rem) rotate(-15deg) translateZ(0px);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    background: var(--gray-700);
+  }
+}
+
+/* Hide on screens smaller than 768px (sm breakpoint) */
+@media (max-width: 767px) {
+  .notVisible {
+      display: none;
+  }
+  .isVisible {
+    display: block;
+  }
+  .adptView {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 460px;
+  }
+  
+}
+
