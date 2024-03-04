@@ -54,7 +54,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                             <button
                                 type="submit"
                                 disabled={!isTyping || text.trim().length === 0}
-                                className={`absolute bottom-1.5 right-2 rounded-lg border ${isTyping && text.trim().length > 0 ? 'border-black bg-black' : 'border-black bg-black'} p-0.5 text-white transition-colors disabled:opacity-10 dark:border-white dark:bg-white dark:hover:bg-white md:bottom-3 md:right-3`}
+                                className={`absolute top-3 right-2 rounded-lg border ${isTyping && text.trim().length > 0 ? 'border-black bg-black' : 'border-black bg-black'} p-0.5 text-white transition-colors disabled:opacity-10 dark:border-white dark:bg-white dark:hover:bg-white md:bottom-3 md:right-3`}
                                 data-testid="send-button"
                             >
                                 <span className="" data-state="closed">

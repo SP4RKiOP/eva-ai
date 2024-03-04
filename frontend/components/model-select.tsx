@@ -2,7 +2,7 @@ import React from 'react';
 
 const ModelSelect: React.FC = () => {
     return (
-        <div className="left-0 right-0">
+        <div className="hidden md:block left-0 right-0">
             <div className="sticky top-0 mb-1.5 flex items-center justify-between z-10 h-14 p-2 font-semibold bg-token-main-surface-primary">
                 <div className="absolute left-1/2 -translate-x-1/2"></div>
                 <div className="flex items-center gap-2">

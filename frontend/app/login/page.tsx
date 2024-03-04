@@ -1,6 +1,5 @@
 "use client";
 import { signIn, useSession } from "next-auth/react";
-import Image from "next/image";
 import {
   IconGitHub,
   IconOpenAI
@@ -8,8 +7,8 @@ import {
 import { redirect } from "next/navigation";
 
 export default function Login() {
-  const { data: session } = useSession();
-  if (session) {
+  const { data: session, status } = useSession();
+  if (status === "authenticated") {
     redirect("/");
   }
 

@@ -1,15 +1,25 @@
+using genai.backend.api.Data;
+using genai.backend.api.Hub;
+using genai.backend.api.Models;
 using genai.backend.api.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseMySQL(builder.Configuration.GetConnectionString("OracleDb")));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<SemanticService>();
-
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ChatHub>();
+builder.Services.AddScoped<ResponseStream>();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IDictionary<string, ChatHubConnection>>(new Dictionary<string, ChatHubConnection>());
 
 string? corsAllowedHosts = builder.Configuration.GetValue("CorsAllowedHosts", string.Empty);
 
@@ -24,7 +34,7 @@ builder.Services.AddCors(options =>
         "AllowAll",
         builder =>
             builder
-            .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials()
             .WithOrigins(corsAllowedHosts.Split(';'))
@@ -43,6 +53,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
+
+app.MapHub<ChatHub>(pattern: "/chat");
 
 app.UseAuthorization();
 

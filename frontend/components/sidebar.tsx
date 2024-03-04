@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
+import { useVisibility } from './VisibilityContext';
 
 interface SidebarProps {
-    onClick: () => void;
-    chatHistoryVisible: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onClick, chatHistoryVisible }) => {
+const Sidebar: React.FC<SidebarProps> = () => {
     const [isHovered, setIsHovered] = useState(false);
+    const { chatHistoryVisible } = useVisibility();
+    const { toggleChatHistoryVisibility } = useVisibility();
 
     return (
         <div
-            className={`fixed top-1/2 z-40 ${!chatHistoryVisible ? 'rotate-180' : 'translateX(0px) translateY(-50%) rotate(0deg) translateZ(0px)'} `}
+            className={`hidden md:block fixed top-1/2 z-40 ${!chatHistoryVisible ? 'rotate-180' : 'translateX(0px) translateY(-50%) rotate(0deg) translateZ(0px)'} `}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            onClick={() => onClick()}
+            onClick={toggleChatHistoryVisibility}
         >
             <button>
                 <span className="" data-state="closed">
