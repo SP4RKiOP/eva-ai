@@ -62,7 +62,7 @@ namespace genai.backend.api.Services
         {
             try
             {
-                if (chatId != null)
+                if (chatId != null || chatId.Length !=0)
                 {
                     await ContinueExistingChat(userId, chatId, userInput);
                     return null;
@@ -100,6 +100,7 @@ namespace genai.backend.api.Services
                     {
                         fullMessage.Append(chatUpdate.Content);
                         await _responseStream.PartialResponse(chatId, chatUpdate.Content);
+                        await Task.Delay(5);//5ms response stream delay for smooth chat stream
                         //await StreamSignalR(userId, chatId, chatUpdate.Content);
                     }
                 }

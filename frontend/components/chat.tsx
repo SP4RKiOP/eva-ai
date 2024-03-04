@@ -1,17 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { delay } from 'rxjs/operators';
 import Input from './input';
 import ChatHistory from './chat-history';
 import Sidebar from './sidebar';
 import Header from './header';
 import ModelSelect from './model-select';
 import Greet from './greet';
+import {
+    IconGenAI
+  } from '@/components/ui/icons'
 import {ChatService} from '../lib/service'; 
 import { VisibilityProvider } from './VisibilityContext';
-import { useSession } from 'next-auth/react';
 
 interface ChatProps {
     chatId?: string;
-  }
+    fName: string;
+    lName: string;
+    uMail: string;
+    uImg: string;
+}
+
 
 interface Message {
   role: string;
@@ -20,11 +28,7 @@ interface Message {
 // Create an instance of ChatService
 const chatService = new ChatService();
 
-const Chat: React.FC<ChatProps> = ({chatId}) => {
-    const { data: session } = useSession();
-    const userName = session?.user?.name ?? '';
-    const userMail = session?.user?.email ?? '';
-    const userImage = session?.user?.image ?? '';
+const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg}) => {
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const handleMessageSubmit = async (text: string) => {
@@ -76,11 +80,14 @@ const Chat: React.FC<ChatProps> = ({chatId}) => {
             
         // Construct the data object to be sent to your API
         const userData = {
-            emailId: userMail,
+            emailId: uMail,
+            firstName: fName,
+            lastName: lName
+
           };
           process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
           // Send userData to your API endpoint
-          fetch(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/api/Users/UserId", {
+          fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -126,27 +133,42 @@ const Chat: React.FC<ChatProps> = ({chatId}) => {
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
-                <ChatHistory userId={userId ||''} userName={userName} userImage={userImage} />
+                <ChatHistory userId={userId ||''} firstName={fName} lastName={lName} userImage={uImg} />
                 <div className="relative flex-1 flex-col overflow-hidden">
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
-                        <div className="flex h-screen flex-col" role="presentation">
+                        <div className="flex h-screen flex-col">
                             <Header /><ModelSelect />
-                            <div className="flex-1 h-full max-h-screen overflow-y-auto">
-                                {messages.length === 0 ? ( // Conditionally render Greet component
-                                    <Greet />
-                                ) : (
-                                    messages.map((message, index) => (
-                                        <div key={index} className='px-4 py-2 justify-center text-base md:gap-6 m-auto'>
-                                            <div className='flex flex-1 text-base mx-auto gap-3 md:px-5 lg:px-1 xl:px-5 md:max-w-3xl lg:max-w-[40rem] xl:max-w-[48rem] group'>
-                                                <div className='relative flex w-full flex-col'>
-                                                    <div className="font-semibold select-none capitalize">{message.role}</div>
-                                                    <div className='min-h-[20px] text-message flex flex-col items-start gap-3 whitespace-pre-wrap break-words [.text-message+&]:mt-5 overflow-x-auto'>{message.text}</div>
+                            <div className='flex flex-col-reverse h-full overflow-y-auto'>
+                                <div className="translateZ(0px)">
+                                    {messages.length === 0 ? ( <Greet />) : 
+                                    (messages.map((message, index) => (
+                                            <div key={index} className='px-4 py-2 justify-center text-base md:gap-6 mb-8'>
+                                                <div className='flex flex-1 text-base mx-auto gap-3 md:px-5 lg:px-1 xl:px-5 md:max-w-3xl lg:max-w-[40rem] xl:max-w-[48rem] group'>
+                                                    <div className="flex-shrink-0 flex flex-col relative items-end">
+                                                        <div>
+                                                            <div className="pt-0.5">
+                                                                <div className="gizmo-shadow-stroke flex h-6 w-6 items-center justify-center overflow-hidden rounded-full">
+                                                                    <div className="relative flex">
+                                                                    {message.role === 'user' ? (
+                                                                    <img alt="User" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="rounded-sm" style={{color: 'transparent'}} src={uImg}/>
+                                                                    ) : (
+                                                                        <IconGenAI className="mx-auto h-6 w-6" />
+                                                                    )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className='relative flex w-full flex-col'>
+                                                        <div className="font-bold select-none capitalize">{message.role==='user'? (fName):('GenAI')}</div>
+                                                        <div className='min-h-[20px] font-sans flex flex-col items-start gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto'>{message.text}</div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
-                                )}
+                                        ))
+                                    )}
+                                </div>
                             </div>
                             <Input onSubmit={handleMessageSubmit} messagesLength={messages.length}/>
                         </div>

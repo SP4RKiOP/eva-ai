@@ -21,9 +21,9 @@ namespace genai.backend.api.Services
         {
             // Check if the user already exists in the database
             var existingUser = _dbContext.Users.FirstOrDefault(u => u.Email == emailId);
-            if (existingUser != null)
+            if (existingUser != null && existingUser.UserId != null)
             {
-                return existingUser.UserId; // Return existing userId
+                return existingUser.UserId;
             }
             else
             {

@@ -5,6 +5,9 @@ import Chat from '@/components/chat';
 
 export default function HomePage() {
   const { data: session, status } = useSession();
+  const [fstNam, lstNam] = session?.user?.name?.split(' ') ?? ['', ''];
+  const userMail = session?.user?.email ?? '';
+  const userImage = session?.user?.image ?? '';
   const router = useRouter();
   // Redirect if session is null
   if (status === 'unauthenticated' || !session) {
@@ -14,7 +17,7 @@ export default function HomePage() {
 
   return (
     <div>
-      <Chat />
+      <Chat fName={fstNam} lName={lstNam} uMail={userMail} uImg={userImage}/>
     </div>
   );
 }

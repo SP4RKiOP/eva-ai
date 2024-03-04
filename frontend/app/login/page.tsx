@@ -2,7 +2,7 @@
 import { signIn, useSession } from "next-auth/react";
 import {
   IconGitHub,
-  IconOpenAI
+  IconGenAI
 } from '@/components/ui/icons'
 import { redirect } from "next/navigation";
 
@@ -16,7 +16,7 @@ export default function Login() {
     <div className="flex flex-col items-center justify-center h-screen">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
         <div className="text-center">
-        <IconOpenAI className="mx-auto h-16 w-16 text-gray-900" />
+        <IconGenAI className="mx-auto h-20 w-20 text-gray-900" />
           <h2 className="mt-4 text-3xl font-extrabold text-gray-900">Welcome to GenAI Chat</h2>
           <p className="mt-2 text-sm text-gray-600">Sign in to continue</p>
         </div>

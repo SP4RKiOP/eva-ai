@@ -2,7 +2,7 @@ import React from 'react';
 
 const Greet: React.FC = () => {
     return (
-        <div className="flex h-full flex-col items-center justify-center text-token-text-primary">
+        <div className="flex mb-96 flex-col items-center justify-center">
             <div className="relative">
                 <div className="mb-3 h-12 w-12">
                     <div className="gizmo-shadow-stroke relative flex h-full items-center justify-center rounded-full bg-white text-gray-950">

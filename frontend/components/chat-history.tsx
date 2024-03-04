@@ -8,12 +8,13 @@ interface ChatTitle {
 }
 
 interface ChatHistoryProps {
-  userName: string;
+  firstName: string;
+  lastName: string;
   userImage: string;
   userId: string;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ userId, userName, userImage }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ userId, firstName, lastName, userImage }) => {
   const { chatHistoryVisible } = useVisibility();
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
@@ -21,7 +22,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ userId, userName, userImage }
     if(userId && userId.length > 0) {
       process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
       // Send userData to your API endpoint
-      fetch(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/api/Semantic/chat-titles/"+userId)
+      fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/chat-titles/${userId}`)
           .then((response) => {
             if (!response.ok) {
               throw new Error("Failed to send user data to the API");
@@ -50,7 +51,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ userId, userName, userImage }
         <div className="flex h-full min-h-0 flex-col">
           <div className="scrollbar-trigger relative h-full w-full flex-1 items-start border-white/20">
             <nav className="flex h-full w-full flex-col px-3 pb-3.5" aria-label="Chat history">
-              <div className="flex-col flex-1 -mr-2 pr-2 overflow-y-hidden">
+              <div className="flex-col flex-1 -mr-2 pr-2 overflow-y-auto">
                 <div className="sticky left-0 right-0 top-0 pt-3.5">
                   <div className="pb-0.5 last:pb-0" tabIndex={0}>
                     <a className={`group flex h-10 items-center gap-2 rounded-lg px-2 font-medium hover-light-dark`} href="/">
@@ -85,7 +86,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ userId, userName, userImage }
                         </div>
                       </div>
                       <div className="relative -top-px grow -space-y-px overflow-hidden text-ellipsis whitespace-nowrap text-left text-token-text-primary">
-                        <div>{userName}</div>
+                        <div>{firstName} {lastName}</div>
                       </div>
                     </button>
                   </div>

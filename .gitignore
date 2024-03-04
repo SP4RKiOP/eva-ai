@@ -7,7 +7,6 @@
 # dotenv files
 .env
 backend/.env*.local
-backend/genai.backend.api/appsettings.json
 
 # User-specific files
 *.rsuser
