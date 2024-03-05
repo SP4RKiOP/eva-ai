@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { delay } from 'rxjs/operators';
+import Link from 'next/link';
 import Input from './input';
 import ChatHistory from './chat-history';
 import Sidebar from './sidebar';
@@ -11,6 +11,7 @@ import {
   } from '@/components/ui/icons'
 import {ChatService} from '../lib/service'; 
 import { VisibilityProvider } from './VisibilityContext';
+import {useRouter} from 'next/navigation';
 
 interface ChatProps {
     chatId?: string;
@@ -18,6 +19,7 @@ interface ChatProps {
     lName: string;
     uMail: string;
     uImg: string;
+    rtr: ReturnType<typeof useRouter>;
 }
 
 
@@ -28,7 +30,7 @@ interface Message {
 // Create an instance of ChatService
 const chatService = new ChatService();
 
-const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg}) => {
+const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => {
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const handleMessageSubmit = async (text: string) => {
@@ -53,7 +55,12 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg}) => {
             if (!response.ok) {
                 throw new Error('Failed to fetch response from server');
             }
-            const data = await response.text();
+            const newChatId = await response.text();
+            if(newChatId!=null && newChatId.length!= 0) {
+                rtr.replace(`/c/${newChatId}`);
+            }
+            //chatService.leaveChat(userId ||'');
+            chatService.joinChat(userId ||'', newChatId);
         } catch (error) {
             console.error('Error:', error);
         }
