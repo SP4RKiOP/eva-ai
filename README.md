@@ -8,7 +8,7 @@
     </td>
  </tr>
 </table>
-
+<div align='center'><img src='https://hits.dwyl.com/abhishek/genai-chatbot.svg?style=flat-square'/></div>
 GenAI Chat is an AI-powered chatbot designed to surpass the functionality of ChatGPT, offering a seamless conversational experience. Built with cutting-edge technologies, it aims to provide an open-source alternative for developers and enthusiasts looking to explore AI chatbots.
 
 ## Table of Contents
