@@ -7,7 +7,7 @@ import Header from './header';
 import ModelSelect from './model-select';
 import Greet from './greet';
 import {
-    IconGenAI
+    IconChatIQ
   } from '@/components/ui/icons'
 import {ChatService} from '../lib/service'; 
 import { VisibilityProvider } from './VisibilityContext';
@@ -59,88 +59,118 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
             if(newChatId!=null && newChatId.length!= 0) {
                 rtr.replace(`/c/${newChatId}`);
             }
-            //chatService.leaveChat(userId ||'');
-            chatService.joinChat(userId ||'', newChatId);
         } catch (error) {
             console.error('Error:', error);
         }
     };
     useEffect(() => {
+    // Fetch latest chat history
+    if (chatId && chatId.length > 0) {
+      fetch(
+        `${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/convhistory/${chatId}`
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.length > 0) {
+            const newMessages: Message[] = data
+              .filter(
+                (chat: any) =>
+                  chat.Role.Label === "assistant" || chat.Role.Label === "user"
+              )
+              .map((chat: any) => ({
+                role: chat.Role.Label,
+                text: chat.Content,
+              }));
+            setMessages(newMessages);
+          }
+        })
+        .catch((error) => console.error("Error fetching chat history:", error));
+    }
 
-        // Fetch latest chat history
-        if(chatId && chatId.length > 0) {
-            fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/convhistory/${chatId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.length > 0) {
-                    const newMessages: Message[] = data
-                        .filter((chat: any) => chat.Role.Label === "assistant" || chat.Role.Label === "user")
-                        .map((chat: any) => ({
-                            role: chat.Role.Label,
-                            text: chat.Content
-                        }));
-                    setMessages(newMessages);
-                }
-            })
-            .catch(error => console.error('Error fetching chat history:', error));
+    // Construct the data object to be sent to your API
+    const userData = {
+      emailId: uMail,
+      firstName: fName,
+      lastName: lName,
+    };
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    // Send userData to your API endpoint
+    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to send user data to the API");
         }
-            
-        // Construct the data object to be sent to your API
-        const userData = {
-            emailId: uMail,
-            firstName: fName,
-            lastName: lName
+        return response.text();
+      })
+      .then((data) => {
+        setUserId(data as string);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
 
-          };
-          process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-          // Send userData to your API endpoint
-          fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(userData),
-            })
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Failed to send user data to the API");
-                }
-                return response.text();
-            })
-            .then((data) => {
-                setUserId(data);
-            })
-            .catch((error) => {
-                console.error("Error:", error);
+    //sessionStorage.setItem('userId', userId ||'');
+    if (userId) {
+      chatService.joinChat(userId);
+    }
+
+    chatService.msgs$.subscribe((msgs) => {
+      if(chatId!=null && chatId.length!=0) {
+        if (msgs && msgs[chatId]) {
+            // console.log('msgs:', msgs[chatId].join(''));
+            const newMessage: Message = {
+              role: "assistant", // Assuming all messages from Redis are from assistant
+              text: msgs[chatId].join(''),
+            };
+            setMessages((prevMessages) => {
+              // Check if the last message is from the assistant and update it
+              if (
+                prevMessages.length > 0 &&
+                prevMessages[prevMessages.length - 1].role === "assistant"
+              ) {
+                return prevMessages.slice(0, -1).concat(newMessage);
+              } else {
+                // If the last message is not from the assistant, add the new message
+                return [...prevMessages, newMessage];
+              }
             });
-        
-        //sessionStorage.setItem('userId', userId ||'');
-        chatService.joinChat(userId ||'', chatId ||'');
-        chatService.msgs$.subscribe((msgs) => {
-            if (msgs && msgs.length > 0) {
-                // console.log('msgs:', msgs);
-                const newMessage: Message = {
-                    role: 'assistant', // Assuming all messages from Redis are from assistant
-                    text: msgs.join('')
-                };
-                setMessages((prevMessages) => {
-                    // Check if the last message is from the assistant and update it
-                    if (prevMessages.length > 0 && prevMessages[prevMessages.length - 1].role === 'assistant') {
-                        return prevMessages.slice(0, -1).concat(newMessage);
-                    } else {
-                        // If the last message is not from the assistant, add the new message
-                        return [...prevMessages, newMessage];
-                    }
-                });
-            }
-        });
-    }, [userId]);
+          }
+      }else {
+        if (msgs && msgs[userId || '']) {
+            // console.log('msgs:', msgs[userId || ''].join(''));
+            const newMessage: Message = {
+              role: "assistant", // Assuming all messages from Redis are from assistant
+              text: msgs[userId || ''].join(''),
+            };
+            setMessages((prevMessages) => {
+              // Check if the last message is from the assistant and update it
+              if (
+                prevMessages.length > 0 &&
+                prevMessages[prevMessages.length - 1].role === "assistant"
+              ) {
+                return prevMessages.slice(0, -1).concat(newMessage);
+              } else {
+                // If the last message is not from the assistant, add the new message
+                return [...prevMessages, newMessage];
+              }
+            });
+          }
+      }
+    });
+  }, [userId]);
+
     
 
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
-                <ChatHistory userId={userId ||''} firstName={fName} lastName={lName} userImage={uImg} />
+                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} />
                 <div className="relative flex-1 flex-col overflow-hidden">
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
@@ -155,20 +185,18 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
                                                     <div className="flex-shrink-0 flex flex-col relative items-end">
                                                         <div>
                                                             <div className="pt-0.5">
-                                                                <div className="gizmo-shadow-stroke flex h-6 w-6 items-center justify-center overflow-hidden rounded-full">
+                                                                <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full">
                                                                     <div className="relative flex">
-                                                                    {message.role === 'user' ? (
-                                                                    <img alt="User" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="rounded-sm" style={{color: 'transparent'}} src={uImg}/>
-                                                                    ) : (
-                                                                        <IconGenAI className="mx-auto h-6 w-6" />
-                                                                    )}
+                                                                    {message.role === 'user' ? 
+                                                                    (<img alt="User" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="rounded-sm" style={{color: 'transparent'}} src={uImg}/>) 
+                                                                    : (<img className="mx-auto h-6 w-6 " src="/icon.svg" alt="ChatIQ" />)}
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className='relative flex w-full flex-col'>
-                                                        <div className="font-bold select-none capitalize">{message.role==='user'? (fName):('GenAI')}</div>
+                                                        <div className="font-bold select-none capitalize">{message.role==='user'? (fName):('ChatIQ')}</div>
                                                         <div className='min-h-[20px] font-sans flex flex-col items-start gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto'>{message.text}</div>
                                                     </div>
                                                 </div>

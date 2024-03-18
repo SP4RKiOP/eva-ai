@@ -56,12 +56,12 @@ namespace genai.backend.api.Controllers
         }
 
 
-        [HttpGet("chat-titles/{userId}")]
+        /*[HttpGet("chat-titles/{userId}")]
         public async Task<IActionResult> GetChatTitlesForUser(string userId)
         {
             var chatTitlesJson = await _semanticService.GetChatTitlesForUser(userId);
             return Ok(chatTitlesJson);
-        }
+        }*/
         [HttpGet("convhistory/{chatId}")]
         public async Task<IActionResult> GetConvHistory(string chatId)
         {

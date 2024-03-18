@@ -1,7 +1,7 @@
 <table align="center">
  <tr>
     <td align="center">
-      <h1>GenAI Chat</h1>
+      <h1>ChatIQ</h1>
     </td>
     <td align="center">
       <img src='./frontend/app/favicon.ico' alt='GenAI'>
@@ -9,7 +9,7 @@
  </tr>
 </table>
 <div align='center'><img src='https://hits.dwyl.com/abhishek/genai-chatbot.svg?style=flat-square'/></div>
-GenAI Chat is an AI-powered chatbot designed to surpass the functionality of ChatGPT, offering a seamless conversational experience. Built with cutting-edge technologies, it aims to provide an open-source alternative for developers and enthusiasts looking to explore AI chatbots.
+ChatIQ is an AI-powered chatbot designed to surpass the functionality of ChatGPT, offering a seamless conversational experience. Built with cutting-edge technologies, it aims to provide an open-source alternative for developers and enthusiasts looking to explore AI chatbots.
 
 ## Table of Contents
 
@@ -23,7 +23,7 @@ GenAI Chat is an AI-powered chatbot designed to surpass the functionality of Cha
 
 ## Project Overview
 
-GenAI Chat is an ambitious project that aims to replicate the core functionalities of ChatGPT, leveraging advanced AI models and technologies. While the project strives to be a perfect open-source clone of ChatGPT, it acknowledges the challenge of replicating the UI design and user experience perfectly. The project is driven by the desire to explore and understand the capabilities of AI chatbots, with a particular focus on semantic services and kernel memory implementation.
+ChatIQ is an ambitious project that aims to replicate the core functionalities of ChatGPT, leveraging advanced AI models and technologies. While the project strives to be a perfect open-source clone of ChatGPT, it acknowledges the challenge of replicating the UI design and user experience perfectly. The project is driven by the desire to explore and understand the capabilities of AI chatbots, with a particular focus on semantic services and kernel memory implementation.
 
 ## Features
 
@@ -47,7 +47,7 @@ GenAI Chat is an ambitious project that aims to replicate the core functionaliti
 
 ## Usage
 
-To use GenAI Chat, simply navigate to the application URL in your browser. You can start a conversation with the chatbot by typing your message in the input field.
+To use ChatIQ, simply navigate to the application URL in your browser. You can start a conversation with the chatbot by typing your message in the input field.
 
 ## Contributing
 

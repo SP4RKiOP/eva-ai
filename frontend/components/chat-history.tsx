@@ -1,42 +1,78 @@
-"use client"
 import React, {useEffect, useState} from 'react';
 import { useVisibility } from './VisibilityContext';
+import {IconChatIQ} from '@/components/ui/icons'
+import { ChatService } from '@/lib/service';
 
 interface ChatTitle {
   ChatId: string;
   ChatTitle: string;
+  CreatedOn: Date;
 }
 
 interface ChatHistoryProps {
   firstName: string;
   lastName: string;
   userImage: string;
-  userId: string;
+  service: ChatService;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ userId, firstName, lastName, userImage }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName, userImage }) => {
   const { chatHistoryVisible } = useVisibility();
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
   useEffect(() => {
-    if(userId && userId.length > 0) {
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-      // Send userData to your API endpoint
-      fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/chat-titles/${userId}`)
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Failed to send user data to the API");
-            }
-            return response.json();
-          })
-          .then((data) => {
-            setChatTitles(data);
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-          });
-    }
-   }, [userId]);
+
+    const fetchAndStoreChatTitles = async () => {
+       const cachedTitles = localStorage.getItem('chatTitles');
+       if (cachedTitles) {
+         // Parse the cached titles and update the state
+         const parsedTitles = JSON.parse(cachedTitles).map((title: string) => {
+           const parsedTitle = JSON.parse(title);
+           parsedTitle.CreatedOn = new Date(parsedTitle.CreatedOn);
+           return parsedTitle;
+         });
+         setChatTitles(parsedTitles);
+       } else {
+         // Fetch chat titles from the service
+         service.chatTitles$.subscribe((ttls) => {
+           if (ttls && ttls.length > 0) {
+             const parsedTitles = ttls.map((title: string) => {
+               const parsedTitle = JSON.parse(title);
+               parsedTitle.CreatedOn = new Date(parsedTitle.CreatedOn);
+               return parsedTitle;
+             });
+             parsedTitles.sort((a: ChatTitle, b: ChatTitle) => b.CreatedOn.getTime() - a.CreatedOn.getTime());
+             setChatTitles(parsedTitles);
+
+             // Store the fetched titles in local storage
+             localStorage.setItem('chatTitles', JSON.stringify(ttls));
+           }
+         });
+       }
+    };
+   
+    fetchAndStoreChatTitles();
+   
+    // Subscribe to the service for updates
+    const subscription = service.chatTitles$.subscribe((ttls) => {
+       if (ttls && ttls.length > 0) {
+         const parsedTitles = ttls.map((title: string) => {
+           const parsedTitle = JSON.parse(title);
+           parsedTitle.CreatedOn = new Date(parsedTitle.CreatedOn);
+           return parsedTitle;
+         });
+         parsedTitles.sort((a: ChatTitle, b: ChatTitle) => b.CreatedOn.getTime() - a.CreatedOn.getTime());
+         setChatTitles(parsedTitles);
+         // Update the local storage with the new data
+         localStorage.setItem('chatTitles', JSON.stringify(ttls));
+       }
+    });
+   
+    // Cleanup subscription on component unmount
+    return () => {
+       subscription.unsubscribe();
+    };
+   }, []);
   return (
     <div className={`w-96 inset-0 z-50 md:flex-shrink-0 md:overflow-x-hidden md:w-64 max-md:fixed ${chatHistoryVisible ? 'hidden md:block' : 'block md:hidden'}`}>
       <div className="md:hidden block absolute top-1 right-0 mr-2 z-50">
@@ -56,9 +92,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ userId, firstName, lastName, 
                   <div className="pb-0.5 last:pb-0" tabIndex={0}>
                     <a className={`group flex h-10 items-center gap-2 rounded-lg px-2 font-medium hover-light-dark`} href="/">
                       <div className="h-7 w-7 flex-shrink-0">
-                        <div className="gizmo-shadow-stroke relative flex h-full items-center justify-center rounded-full bg-white text-gray-950">
-                          <svg width="41" height="41" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-2/3 w-2/3" role="img">
-                          </svg>
+                        <div className="gizmo-shadow-stroke relative flex h-full items-center justify-center rounded-full text-gray-950">
+                          <IconChatIQ className="mx-auto h-10 w-10"/>
                         </div>
                       </div>
                       <span className="group-hover:text-gray-950 dark:group-hover:text-gray-200">New Chat</span>

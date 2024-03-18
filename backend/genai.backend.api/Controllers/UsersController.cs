@@ -8,14 +8,17 @@ namespace genai.backend.api.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UserService _userService;
+        private readonly SemanticService _semanticService;
 
-        public UsersController(UserService userService)
+        public UsersController(UserService userService, SemanticService semanticService)
         {
             _userService = userService;
+            _semanticService = semanticService;
+
         }
 
         [HttpPost("UserId")]
-        public IActionResult GetOrCreateUser([FromBody] CreateUserRequest request)
+        public async Task<IActionResult> GetOrCreateUser([FromBody] CreateUserRequest request)
         {
             if (request == null || string.IsNullOrEmpty(request.EmailId))
             {
@@ -23,6 +26,7 @@ namespace genai.backend.api.Controllers
             }
 
             string userId = _userService.GetOrCreateUser(request.EmailId, request.FirstName, request.LastName);
+            await _semanticService.GetChatTitlesForUser(userId:userId);
             return Ok(userId);
         }
     }

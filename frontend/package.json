@@ -9,8 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@langchain/azure-openai": "^0.0.1",
-    "@langchain/openai": "^0.0.14",
     "@microsoft/signalr": "^8.0.0",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-dialog": "^1.0.5",

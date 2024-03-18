@@ -12,18 +12,9 @@ namespace genai.backend.api.Hub
         }
         public async Task JoinRoom(ChatHubConnection userConnection)
         {
-            if(userConnection.ChatId==null || userConnection.ChatId.Length==0)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, groupName: userConnection.UserId!);
-                _connection[Context.ConnectionId] = userConnection;
-                Console.WriteLine(value: $"User {userConnection.UserId} has joined chat.");
-            }
-            else
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, groupName: userConnection.ChatId!);
-                _connection[Context.ConnectionId] = userConnection;
-                Console.WriteLine(value: $"User {userConnection.UserId} has joined the ChatId {userConnection.ChatId}");
-            }
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName: userConnection.UserId!);
+            _connection[Context.ConnectionId] = userConnection;
+            Console.WriteLine(value: $"User {userConnection.UserId} has joined chat.");
         }
 
         /*public async Task SendMessage(string chatId, string message)
@@ -34,14 +25,5 @@ namespace genai.backend.api.Hub
                     .SendAsync(method:"ReceiveMessage", arg1:userConnection.UserId, arg2:chatId, arg3:message);
             } else { }
         }*/
-
-        public override Task OnDisconnectedAsync(Exception? exception)
-        {
-            if(!_connection.TryGetValue(key:Context.ConnectionId, out var userConnection))
-                return base.OnDisconnectedAsync(exception);
-            Clients.Group(groupName:userConnection.ChatId!)
-                .SendAsync(method:"ReceiveMessage", arg1:$"{userConnection.UserId} has left the chat", arg2: DateTime.Now);
-            return base.OnDisconnectedAsync(exception);
-        }
     }
 }

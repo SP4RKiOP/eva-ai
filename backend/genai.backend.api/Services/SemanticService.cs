@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using genai.backend.api.Data;
 using Microsoft.AspNetCore.SignalR;
 using ZstdSharp.Unsafe;
+using genai.backend.api.Models;
 
 namespace genai.backend.api.Services
 {
@@ -99,21 +100,28 @@ namespace genai.backend.api.Services
                     if (!string.IsNullOrEmpty(chatUpdate.Content))
                     {
                         fullMessage.Append(chatUpdate.Content);
-                        await _responseStream.PartialResponse(chatId, chatUpdate.Content);
-                        await Task.Delay(5);//5ms response stream delay for smooth chat stream
-                        //await StreamSignalR(userId, chatId, chatUpdate.Content);
+                        await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = chatId, PartialContent = chatUpdate.Content }));
+                        await Task.Delay(8);//5ms response stream delay for smooth chat stream
                     }
                 }
-                await _responseStream.EndStream(chatId);
+                await _responseStream.EndStream(userId);
 
                 oldchatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
 
                 existingChatHistory.ChatHistoryJson = JsonSerializer.Serialize(oldchatHistory);
+                existingChatHistory.CreatedOn = DateTime.Now;
                 await _dbContext.SaveChangesAsync();
+                await _responseStream.ClearChatTitles(userId);
+                await GetChatTitlesForUser(userId);
             }
             catch (Exception ex)
             {
-                await StreamSignalR(userId, chatId, $"Error continuing chat with existing history: {ex.Message}");
+                if (ex.InnerException is Azure.RequestFailedException requestFailedException && requestFailedException.ErrorCode == "content_filter")
+                {
+                    await _responseStream.PartialResponse(userId, "Your query got a filtered content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
+                }
+                await _responseStream.PartialResponse(chatId, $"Error continuing chat with existing history: {ex.Message}");
+                throw;
             }
         }
 
@@ -147,9 +155,8 @@ namespace genai.backend.api.Services
                     if (!string.IsNullOrEmpty(chatUpdate.Content))
                     {
                         fullMessage.Append(chatUpdate.Content);
-                        await _responseStream.PartialResponse(userId, chatUpdate.Content);
-                        await Task.Delay(5);//5ms response stream delay for smooth chat stream
-                        //await StreamSignalR(userId, newChatId, chatUpdate.Content);
+                        await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = userId, PartialContent = chatUpdate.Content }));
+                        await Task.Delay(8);//5ms response stream delay for smooth chat stream
                     }
                 }
                 await _responseStream.EndStream(userId);
@@ -157,75 +164,92 @@ namespace genai.backend.api.Services
                 newChatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
 
                 var updatedJsonChatHistory = JsonSerializer.Serialize(newChatHistory);
+                var newTitle = await NewChatTitle(newChatHistory.ElementAt(1).Content.ToString());
                 var dbchatHistory = new Models.ChatHistory
                 {
                     UserId = userId,
                     ChatId = newChatId,
-                    ChatTitle = await NewChatTitle(newChatHistory.ElementAt(1).Content.ToString()),
-                    ChatHistoryJson = updatedJsonChatHistory
+                    ChatTitle = newTitle,
+                    ChatHistoryJson = updatedJsonChatHistory,
+                    CreatedOn = DateTime.Now
                 };
                 _dbContext.ChatHistory.Add(dbchatHistory);
                 await _dbContext.SaveChangesAsync();
+                await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(new { ChatId = newChatId, ChatTitle = newTitle, CreatedOn = DateTime.Now }));
                 return newChatId;
             }
             catch (Exception ex)
             {
                 if (ex.InnerException is Azure.RequestFailedException requestFailedException && requestFailedException.ErrorCode == "content_filter")
                 {
-                    await StreamSignalR(userId, newChatId, "Your query got a content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
+                    await _responseStream.PartialResponse(userId, "Your query got a filtered content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
                 }
-
-                await StreamSignalR(userId, newChatId, $"Error starting new chat: {ex.InnerException?.Message ?? ex.Message}");
+                await _responseStream.PartialResponse(userId, $"Error starting new chat: {ex.InnerException?.Message ?? ex.Message}");
                 throw;
             }
         }
-        public async Task<string> GetChatTitlesForUser(string userId)
+        public async Task GetChatTitlesForUser(string userId)
         {
             try
             {
-                var chatHistories = await _dbContext.ChatHistory
+                var chatTitles = await _dbContext.ChatHistory
                     .Where(ch => ch.UserId == userId)
-                    .Select(ch => new { ch.ChatId, ch.ChatTitle })
+                    .Select(ch => new { ch.ChatId, ch.ChatTitle, ch.CreatedOn })
                     .ToListAsync();
+                if(chatTitles!=null)
+                {
+                    foreach (var chatTitle in chatTitles)
+                    {
+                        await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(chatTitle));
+                        await Task.Delay(2);
+                    }
+                }
 
-                // Serialize the chat history to JSON
-                var jsonResult = JsonSerializer.Serialize(chatHistories);
-
-                return jsonResult;
             }
             catch (Exception ex)
             {
                 // Handle exceptions
-                return $"Error getting chat titles for user: {ex.Message}";
+                await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(new { ChatId=userId, ChatTitle="No Chat Found", CreatedOn=DateTime.Now}));
             }
         }
         public async Task<string> GetChatHistory(string chatId)
         {
             try
             {
-                var chatHistories = await _dbContext.ChatHistory
-                    .Where(ch => ch.ChatId == chatId)
-                    .Select(ch => ch.ChatHistoryJson)
-                    .FirstOrDefaultAsync();
+                /*await _responseStream.ClearChatTitles(chatId);*/
+                var chatHistory = await _dbContext.ChatHistory
+                    .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
 
-                return chatHistories;
+                if (chatHistory == null)
+                {
+                    return $"Chat history not found for chat ID: {chatId}";
+                }
+
+                /*var userId = chatHistory.UserId;
+
+                var chatTitles = await _dbContext.ChatHistory
+                    .Where(ch => ch.UserId == userId)
+                    .Select(ch => new { ch.ChatId, ch.ChatTitle, ch.CreatedOn })
+                    .ToListAsync();
+
+                foreach (var chatTitle in chatTitles)
+                {
+                    await _responseStream.ChatTitles(chatId, JsonSerializer.Serialize(chatTitle));
+                    await Task.Delay(2);
+                }*/
+
+                return chatHistory.ChatHistoryJson;
             }
             catch (Exception ex)
             {
                 // Handle exceptions
-                return $"Error getting chat titles for user: {ex.Message}";
+                return $"Error getting chat history: {ex.Message}";
             }
-        }
-
-        private async Task StreamSignalR(string userId, string chatId, string message)
-        {
-            /*var redisDb = _redisConnection.GetDatabase();
-            await redisDb.PublishAsync(channel, message);*/
         }
 
         private async Task<string> NewChatTitle(string userInput)
         {
-            var prompt = "I want you to act as a title generator. I will type in message and you will reply with a title in no more than 5 word which should capture the essence of message." +
+            var prompt = "You are a Text model. I will type in message and you will reply with a text in no more than 5 word which should capture the essence of message." +
                 " my first Message: '{{$input}}'";
             var func = _chatKernel.CreateFunctionFromPrompt(prompt);
             var response = await func.InvokeAsync(_chatKernel, new() { ["input"] = userInput });

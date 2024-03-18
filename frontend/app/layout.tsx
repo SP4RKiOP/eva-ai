@@ -5,7 +5,7 @@ import "./globals.css";
 import Chat from "@/components/chat";
 
 export const metadata = {
-  title: "GenAI Chat",
+  title: "ChatIQ",
   description: "Made by Abhishek Sinha",
 };
 

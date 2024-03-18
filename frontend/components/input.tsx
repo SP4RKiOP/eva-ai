@@ -42,7 +42,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                                 id="prompt-textarea"
                                 tabIndex={0}
                                 rows={1}
-                                placeholder="Message GenAi…"
+                                placeholder="Message ChatIQ…"
                                 value={text}
                                 onChange={handleChange}
                                 onFocus={() => setIsTyping(true)}
@@ -68,7 +68,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                 </div>
             </form>
             <div className="relative px-2 py-2 text-center text-xs text-token-text-secondary md:px-[60px]">
-                <span>GenAi ChatBot can make mistakes. Consider checking important information.</span>
+                <span>ChatIQ is stable & fast but can do mistake(Obviously probability is very low!!). Consider checking important information.</span>
             </div>
         </div>
     );

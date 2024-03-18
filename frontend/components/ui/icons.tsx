@@ -88,47 +88,30 @@ function IconNextChat({
   )
 }
 
-function IconGenAI({ className, ...props }: React.ComponentProps<'svg'>) {
+function IconChatIQ({ className, ...props }: React.ComponentProps<'svg'>) {
   return (
     <svg
-      width="250px"
-      height="250px"
-      viewBox="0 0 128.00 128.00"
+      viewBox="0 0 101.67 100"
       xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      role="img"
-      className={cn('size-4', className)}
+      className={cn('', className)}
       {...props}
     >
-      <title>GenAI icon</title>
-      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="1.792"></g>
-      <g id="SVGRepo_iconCarrier">
-        <circle cx="64" cy="64" r="60" fill="#248196"></circle>
-        <circle cx="60.1" cy="63.1" r="56.1" fill="#289fb2"></circle>
-        <path
-          d="M94.8 84.1c-1.6.8-3.4 1.6-6.5 1.6c-2 0-4.6-.4-8.1-1.3c-.4-.1-.6-.4-.6-.8c-.1-8 1.8-12.1 3.6-14.2c1.8-2 3.4-3.1 6.5-3.1h.3c3 0 5.3 1.3 7.5 4c5.5 6.5-.4 12.7-2.7 13.8z"
-          opacity=".2"
-          fill="#248196"
-        ></path>
-        <path
-          d="M24 29.7c4.5-7.1 14.1-13 24.1-14.8c2.5-.4 5-.6 7.1.2c1.6.6 2.9 2.1 2 3.8c-.7 1.4-2.6 2-4.1 2.5c-9.3 3-17.9 6.4-23.1 14.3c-2 3-4.9 14.4-8.6 12.3c-3.9-2.3-3.1-9.5 2.6-18.3z"
-          opacity=".65"
-          fill="#b4e7ed"
-        ></path>
-        <path
-          d="M103.9 65.3c-3.5-5.1-7.8-7-13.5-7c-15.6.1-18.5 16.1-18.7 22.5c0 .3-.3.5-.6.4l-1.1-.5c-2-.7-2.8-4.8-3-7.4V44.6c0-8.7-6.8-16.1-15.5-16.4c-5-.2-9.5 2-12.5 5.4c-1.1-1.2-2.3-2.3-3.8-3.1c-2.1-1.3-4.9-.5-5.8 1.8c-.8 1.9 0 4 1.6 5c2.4 1.4 4 4 4 6.9V82c0 2.1 1.5 3.9 3.6 4.2c2.4.2 4.4-1.6 4.4-4V44.4c0-4.3 3.2-8 7.5-8.3c4.7-.3 8.5 3.4 8.5 8v30c.3 3.8 1.6 11.6 8.2 14.1c.2.1.5.2.9.3c.8.3 2 .8 3.3 1.3c.4.1.6.4.7.8s.1.8.2 1.2c.4 3.1-.6 4.2-2.3 4.9c-3.1 1.4-8 1.1-12.3.2c-2.5-.5-4.8 1.4-4.8 3.9c0 1.9 1.3 3.5 3.2 3.9c1.4.3 2.8.5 4.2.7c1.3.1 2.7.2 4.1.2c3.7 0 7.8-.6 10.9-2.8c3.2-2.2 5-5.7 5-9.9c0-.3.2-.5.5-.4c22.5 6.4 31.2-15.4 23.1-27.2zm-9.1 18.8c-2.7 1.3-5.9 2.7-14.6.2c-.4-.1-.6-.4-.6-.8c-.1-8 1.8-12.1 3.6-14.2c1.8-2 3.4-3.1 6.5-3.1c3.1-.1 5.5 1.2 7.8 3.9c5.5 6.6-.4 12.9-2.7 14z"
-          fill="#fafafa"
-        ></path>
-        <path
-          d="M24 29.7c4.5-7.1 14.1-13 24.1-14.8c2.5-.4 5-.6 7.1.2c1.6.6 2.9 2.1 2 3.8c-.7 1.4-2.6 2-4.1 2.5c-9.3 3-17.9 6.4-23.1 14.3c-2 3-4.9 14.4-8.6 12.3c-3.9-2.3-3.1-9.5 2.6-18.3z"
-          opacity=".3"
-          fill="#b4e7ed"
-        ></path>
-      </g>
+      <title>ChatIQ</title>
+      <defs>
+        <linearGradient id="a9560d8af-ec7b-4a22-a933-7f7df8186c41" x1="-.11" y1="-12.79" x2="58.73" y2="19.53" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#1aa8fd"/>
+          <stop offset="1" stopColor="#0d89ff"/>
+        </linearGradient>
+        <linearGradient id="b914dfc21-bce8-42fa-8a0d-d6993148d6cd" x1="-1802.95" y1="1116.99" x2="-1744.11" y2="1149.31" gradientTransform="rotate(180 -850.585 614.89)" href="#a9560d8af-ec7b-4a22-a933-7f7df8186c41"/>
+      </defs>
+      <path d="M67.5 59.12V33.33H83a23.1 23.1 0 0 1 18.63 18.51v14.83H75a7.55 7.55 0 0 1-7.5-7.55z" fill="#5dcced" opacity=".8"/>
+      <path d="M34.16 25.79V0h31.91a4.67 4.67 0 0 1 3.3 1.36l30.94 31a4.66 4.66 0 0 1 1.36 3.29v16.19A23.1 23.1 0 0 0 83 33.33H41.71a7.54 7.54 0 0 1-7.55-7.54z" fill="url(#a9560d8af-ec7b-4a22-a933-7f7df8186c41)"/>
+      <path d="M34.18 40.88v25.79H18.64A23.12 23.12 0 0 1 0 48.16V33.33h26.63a7.55 7.55 0 0 1 7.55 7.55z" fill="#5dcced" opacity=".8"/>
+      <path d="M67.51 74.21V100H35.6a4.66 4.66 0 0 1-3.29-1.36L1.36 67.69A4.66 4.66 0 0 1 0 64.4V48.16a23.12 23.12 0 0 0 18.64 18.51H60a7.54 7.54 0 0 1 7.51 7.54z" fill="url(#b914dfc21-bce8-42fa-8a0d-d6993148d6cd)"/>
     </svg>
   );
 }
+
 
 
 
@@ -507,7 +490,7 @@ function IconChevronUpDown({
 export {
   IconEdit,
   IconNextChat,
-  IconGenAI,
+  IconChatIQ,
   IconVercel,
   IconGitHub,
   IconSeparator,
