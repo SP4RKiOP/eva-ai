@@ -34,7 +34,7 @@ const SampleInput: React.FC = () => {
                                         <div className="flex w-full items-center justify-between">
                                             <div className="flex flex-col overflow-hidden">
                                                 <div className="truncate">Recommend a dish</div>
-                                                <div className="truncate font-normal opacity-50">to impress a date who's a picky eater</div>
+                                                <div className="truncate font-normal opacity-50">to impress a date who&apos;s a picky eater</div>
                                             </div>
                                             <div className="absolute bottom-0 right-0 top-0 flex items-center rounded-xl bg-gradient-to-l from-token-main-surface-secondary pl-6 pr-4 text-token-text-secondary opacity-0 group-hover:opacity-100">
                                                 <span className="" data-state="closed">

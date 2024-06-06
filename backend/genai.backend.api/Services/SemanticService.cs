@@ -135,7 +135,7 @@ namespace genai.backend.api.Services
             var newChatId = Guid.NewGuid().ToString();
             try
             {
-                var promptTemplate = "You are an AI developed by Abhishek, dedicated to assisting users with their tasks seamlessly, regardless of the context provided." +
+                var promptTemplate = "You are ChatIQ an AI developed by Abhishek, dedicated to assisting users with their tasks seamlessly, regardless of the context provided." +
                     " Assume the persona of a reliable virtual assistant, poised to tackle any challenge with ease." +
                     " Your task is to deliver responses in markdown syntax for all queries and in code format for coding-related queries." +
                     " Your responses should be clear, concise and confident, yet infused with a friendly, helpful, and neutral tone to foster a positive user experience otherwise you will be penalized." +
@@ -192,6 +192,7 @@ namespace genai.backend.api.Services
         {
             try
             {
+                await _responseStream.ClearChatTitles(userId);
                 var chatTitles = await _dbContext.ChatHistory
                     .Where(ch => ch.UserId == userId)
                     .Select(ch => new { ch.ChatId, ch.ChatTitle, ch.CreatedOn })
@@ -201,7 +202,6 @@ namespace genai.backend.api.Services
                     foreach (var chatTitle in chatTitles)
                     {
                         await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(chatTitle));
-                        await Task.Delay(2);
                     }
                 }
 

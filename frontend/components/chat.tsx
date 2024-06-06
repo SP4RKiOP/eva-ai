@@ -12,6 +12,7 @@ import {
 import {ChatService} from '../lib/service'; 
 import { VisibilityProvider } from './VisibilityContext';
 import {useRouter} from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatProps {
     chatId?: string;
@@ -197,7 +198,9 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
                                                     </div>
                                                     <div className='relative flex w-full flex-col'>
                                                         <div className="font-bold select-none capitalize">{message.role==='user'? (fName):('ChatIQ')}</div>
-                                                        <div className='min-h-[20px] font-sans flex flex-col items-start gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto'>{message.text}</div>
+                                                        <div className='min-h-[20px] font-sans flex flex-col items-start gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto'>
+                                                            <ReactMarkdown>{message.text}</ReactMarkdown>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
