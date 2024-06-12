@@ -10,6 +10,7 @@ namespace genai.backend.api.Controllers
         private readonly UserService _userService;
         private readonly SemanticService _semanticService;
 
+
         public UsersController(UserService userService, SemanticService semanticService)
         {
             _userService = userService;
@@ -25,9 +26,10 @@ namespace genai.backend.api.Controllers
                 return BadRequest("EmailId is required.");
             }
 
-            string userId = _userService.GetOrCreateUser(request.EmailId, request.FirstName, request.LastName);
-            await _semanticService.GetChatTitlesForUser(userId:userId);
-            return Ok(userId);
+            string uId = _userService.GetOrCreateUser(request.EmailId, request.FirstName, request.LastName);
+            await _userService.GetChatTitlesForUser(userId:uId);
+            await _userService.GetAvailableModels(userId:uId);
+            return Ok(uId);
         }
     }
 

@@ -11,6 +11,8 @@ using genai.backend.api.Data;
 using Microsoft.AspNetCore.SignalR;
 using ZstdSharp.Unsafe;
 using genai.backend.api.Models;
+using System.Text.RegularExpressions;
+using Humanizer;
 
 namespace genai.backend.api.Services
 {
@@ -25,32 +27,28 @@ namespace genai.backend.api.Services
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly ApplicationDbContext _dbContext;
         private readonly ResponseStream _responseStream;
-
+        private readonly UserService _userService;
+        private string gptdeployName;
+        private string endpoint;
+        private string apiKey;
         /// <summary>
         /// Initializes a new instance of the <see cref="SemanticService"/> class.
         /// </summary>
         /// <param name="configuration">The configuration object.</param>
         /// <param name="dbContext">The application database context.</param>
-        public SemanticService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream)
+        public SemanticService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream, UserService userService)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             _responseStream = responseStream;
 
             // Get values from appsettings.json
-            var gptdeployName = _configuration["AzureOpenAI:GPTDeployName"];
-            var endpoint = _configuration["AzureOpenAI:Endpoint"];
-            var apiKey = _configuration["AzureOpenAI:ApiKey"];
+            gptdeployName = "gpt-4o";
+            endpoint = "https://cifgefgasfgs.openai.azure.com/";
+            apiKey = "5f456f363463f535345ebc";
             var redisConnection = _configuration["ConnectionStrings:Redis"];
             _redisConnection = ConnectionMultiplexer.Connect(redisConnection);
-            _chatKernel = Kernel.CreateBuilder()
-                .AddAzureOpenAIChatCompletion(
-                    deploymentName: gptdeployName,
-                    endpoint: endpoint,
-                    apiKey: apiKey)
-                .Build();
-
-            _chatCompletion = _chatKernel.GetRequiredService<IChatCompletionService>();
+            _userService = userService;
         }
 
         /// <summary>
@@ -59,18 +57,34 @@ namespace genai.backend.api.Services
         /// <param name="userId">The user ID.</param>
         /// <param name="userInput">The user input.</param>
         /// <param name="chatId">The chat ID.</param>
-        public async Task<string> semanticChatAsync(string userId, string userInput, string chatId = null)
+        public async Task<string> semanticChatAsync(string userId, int modelId, string userInput, string chatId = null)
         {
             try
             {
+                var GptModel = await _dbContext.AvailableModels
+                .Where(m => m.DeploymentId == modelId)
+                .Select(m => new
+                {
+                    ModelName = m.DeploymentName,
+                    ModelUrl = m.Endpoint,
+                    ModelKey = m.ApiKey
+                })
+                .ToListAsync();
+                var _chatKernel = Kernel.CreateBuilder()
+                .AddAzureOpenAIChatCompletion(
+                    deploymentName: GptModel[0].ModelName,
+                    endpoint: GptModel[0].ModelUrl,
+                    apiKey: GptModel[0].ModelKey)
+                .Build();
+                var _chatCompletion = _chatKernel.GetRequiredService<IChatCompletionService>();
                 if (chatId != null && chatId.Length !=0)
                 {
-                    await ContinueExistingChat(userId, chatId, userInput);
+                    await ContinueExistingChat(_chatKernel, _chatCompletion, userId, chatId, userInput);
                     return null;
                 }
                 else
                 {
-                    return await StartNewChat(userId, userInput);
+                    return await StartNewChat(_chatKernel, _chatCompletion, userId, userInput);
 
                 }
             }
@@ -81,10 +95,11 @@ namespace genai.backend.api.Services
             }
         }
 
-        private async Task ContinueExistingChat(string userId, string chatId, string userInput)
+        private async Task ContinueExistingChat(Microsoft.SemanticKernel.Kernel _chatKernel, Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService _chatCompletion, string userId, string chatId, string userInput)
         {
             try
             {
+                
                 var existingChatHistory = await _dbContext.ChatHistory
                     .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
 
@@ -101,7 +116,7 @@ namespace genai.backend.api.Services
                     {
                         fullMessage.Append(chatUpdate.Content);
                         await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = chatId, PartialContent = chatUpdate.Content }));
-                        await Task.Delay(8);//5ms response stream delay for smooth chat stream
+                        await Task.Delay(30);//5ms response stream delay for smooth chat stream
                     }
                 }
                 await _responseStream.EndStream(userId);
@@ -112,7 +127,7 @@ namespace genai.backend.api.Services
                 existingChatHistory.CreatedOn = DateTime.Now;
                 await _dbContext.SaveChangesAsync();
                 await _responseStream.ClearChatTitles(userId);
-                await GetChatTitlesForUser(userId);
+                await _userService.GetChatTitlesForUser(userId);
             }
             catch (Exception ex)
             {
@@ -130,7 +145,7 @@ namespace genai.backend.api.Services
         /// </summary>
         /// <param name="userId">The user ID.</param>
         /// <param name="userInput">The user input.</param>
-        public async Task<string> StartNewChat(string userId, string userInput)
+        public async Task<string> StartNewChat(Microsoft.SemanticKernel.Kernel _chatKernel, Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService _chatCompletion, string userId, string userInput)
         {
             var newChatId = Guid.NewGuid().ToString();
             try
@@ -156,7 +171,7 @@ namespace genai.backend.api.Services
                     {
                         fullMessage.Append(chatUpdate.Content);
                         await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = userId, PartialContent = chatUpdate.Content }));
-                        await Task.Delay(8);//5ms response stream delay for smooth chat stream
+                        await Task.Delay(30);//5ms response stream delay for smooth chat stream
                     }
                 }
                 await _responseStream.EndStream(userId);
@@ -164,7 +179,7 @@ namespace genai.backend.api.Services
                 newChatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
 
                 var updatedJsonChatHistory = JsonSerializer.Serialize(newChatHistory);
-                var newTitle = await NewChatTitle(newChatHistory.ElementAt(1).Content.ToString());
+                var newTitle = await NewChatTitle(_chatKernel, newChatHistory.ElementAt(1).Content.ToString());
                 var dbchatHistory = new Models.ChatHistory
                 {
                     UserId = userId,
@@ -188,30 +203,7 @@ namespace genai.backend.api.Services
                 throw;
             }
         }
-        public async Task GetChatTitlesForUser(string userId)
-        {
-            try
-            {
-                await _responseStream.ClearChatTitles(userId);
-                var chatTitles = await _dbContext.ChatHistory
-                    .Where(ch => ch.UserId == userId)
-                    .Select(ch => new { ch.ChatId, ch.ChatTitle, ch.CreatedOn })
-                    .ToListAsync();
-                if(chatTitles!=null)
-                {
-                    foreach (var chatTitle in chatTitles)
-                    {
-                        await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(chatTitle));
-                    }
-                }
-
-            }
-            catch (Exception ex)
-            {
-                // Handle exceptions
-                await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(new { ChatId=userId, ChatTitle="No Chat Found", CreatedOn=DateTime.Now}));
-            }
-        }
+        
         public async Task<string> GetChatHistory(string chatId)
         {
             try
@@ -247,10 +239,10 @@ namespace genai.backend.api.Services
             }
         }
 
-        private async Task<string> NewChatTitle(string userInput)
+        private async Task<string> NewChatTitle(Microsoft.SemanticKernel.Kernel _chatKernel, string userInput)
         {
-            var prompt = "You are a Text model. I will type in message and you will reply with a text in no more than 5 word which should capture the essence of message." +
-                " my first Message: '{{$input}}'";
+            var prompt = "You are a chatbot specialized in generating concise titles. I will provide a message and you will respond with a title in no more than 5 word which should capture the essence of message." +
+                " My first Message: '{{$input}}'";
             var func = _chatKernel.CreateFunctionFromPrompt(prompt);
             var response = await func.InvokeAsync(_chatKernel, new() { ["input"] = userInput });
             var title = response.GetValue<string>();
@@ -267,5 +259,7 @@ namespace genai.backend.api.Services
 
             return title;
         }
+        
     }
 }
+

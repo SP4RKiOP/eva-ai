@@ -12,6 +12,8 @@ namespace genai.backend.api.Data
         public DbSet<User> Users { get; set; }
         public DbSet<ChatHistory> ChatHistory { get; set; }
 
+        public DbSet<AvailableModel> AvailableModels { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Define relationships, constraints, etc. if needed

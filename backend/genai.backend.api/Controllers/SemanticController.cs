@@ -16,6 +16,7 @@ namespace genai.backend.api.Controllers
         public class PostRequest
         {
             public required string userId { get; set; }
+            public required int modelId { get; set; }
             public required string userInput { get; set; }
             public string? chatId { get; set; } // Nullable
         }
@@ -28,12 +29,12 @@ namespace genai.backend.api.Controllers
                 // Check if the 'question' property exists in the request body
                 if (requestBody != null && !string.IsNullOrEmpty(requestBody.userInput))
                 {
-                    var newChatId = await _semanticService.semanticChatAsync(requestBody.userId, requestBody.userInput, requestBody.chatId);
+                    var ChatId = await _semanticService.semanticChatAsync(requestBody.userId, requestBody.modelId, requestBody.userInput, requestBody.chatId);
 
-                    if (newChatId != null)
+                    if (ChatId != null)
                     {
                         // If a new chat is started, return the new chat ID
-                        return Ok(newChatId);
+                        return Ok(ChatId);
                     }
                     else
                     {
@@ -68,6 +69,8 @@ namespace genai.backend.api.Controllers
             var chatTitlesJson = await _semanticService.GetChatHistory(chatId);
             return Ok(chatTitlesJson);
         }
+
+        
 
     }
 }

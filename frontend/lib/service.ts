@@ -15,6 +15,9 @@ export class ChatService {
     public msgs: { [chatId: string]: string[] } = {};
     public chatTitles$ = new BehaviorSubject<any>([]);
     public chatTitles: any[]=[];
+    public availableModels$ = new BehaviorSubject<any>([]);
+    public availableModels: any[]=[];
+    public selectedModelId$ = new BehaviorSubject<number>(1);
 
     constructor() {
     this.start();
@@ -46,6 +49,12 @@ export class ChatService {
     this.connection.on("ChatTitles", (chatTitles: any) => {
       this.chatTitles = [...this.chatTitles, chatTitles];
       this.chatTitles$.next(this.chatTitles);
+    });
+    this.connection.on("AvailableModels", (availableModels: any) => {
+      this.availableModels = availableModels;
+      this.availableModels$.next(this.availableModels);
+
+      console.log("Available models updated. Models:", this.availableModels);
     });
     this.connection.on("ClearChatTitles", () => {
       this.chatTitles = [];

@@ -1,24 +1,81 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useVisibility } from './VisibilityContext';
+import { ChatService } from '@/lib/service';
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
 
-interface HeaderProps {
+interface Model {
+  id: number;
+  modelName: string;
 }
 
-const Header: React.FC<HeaderProps> = () => {
+interface HeaderProps {
+  service: ChatService;
+}
+
+const Header: React.FC<HeaderProps> = ({ service }) => {
   const { toggleChatHistoryVisibility } = useVisibility();
+  const [models, setModels] = useState<Model[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+
+  useEffect(() => {
+    // Subscribe to availableModels changes
+    const subscription = service.availableModels$.subscribe(models => {
+      setModels(models);
+    });
+
+    // Cleanup subscription on component unmount
+    return () => subscription.unsubscribe();
+  }, [service]);
+
+  const handleModelChange = (modelName: string, id: number) => {
+    setSelectedModel(modelName);
+    service.selectedModelId$.next(id);
+    console.log(`Selected model: ${service.selectedModelId$.value}`);
+  };
+  
   return (
-    <div className="text-token-primary sticky top-0 z-10 flex min-h-[40px] items-center justify-center border-b border-token-border-medium bg-token-main-surface-primary pl-1 md:hidden">
-      <button type="button" className="absolute bottom-0 left-0 top-0 inline-flex items-center justify-center rounded-md px-3 hover:text-token-text-primary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white active:opacity-50" onClick={toggleChatHistoryVisibility}>
+    <div className="text-token-primary sticky top-0 z-10 flex min-h-[40px] items-center justify-center border-b pl-1 md:hidden">
+      <button type="button" className="absolute bottom-0 left-0 top-0 inline-flex items-center justify-center rounded-md px-3 hover-light-dark dark:hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white active:opacity-50" onClick={toggleChatHistoryVisibility}>
         <span className="sr-only">Open sidebar</span>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path fillRule="evenodd" clipRule="evenodd" d="M3 8C3 7.44772 3.44772 7 4 7H20C20.5523 7 21 7.44772 21 8C21 8.55228 20.5523 9 20 9H4C3.44772 9 3 8.55228 3 8ZM3 16C3 15.4477 3.44772 15 4 15H14C14.5523 15 15 15.4477 15 16C15 16.5523 14.5523 17 14 17H4C3.44772 17 3 16.5523 3 16Z" fill="currentColor"></path>
         </svg>
       </button>
-      <div className="group flex cursor-pointer items-center gap-1 rounded-xl py-2 px-3 text-lg font-medium hover:bg-token-main-surface-secondary radix-state-open:bg-token-main-surface-secondary" id="radix-:r1te:" aria-haspopup="menu" aria-expanded="false" data-state="closed">
-        <div>GPT <span className="text-token-text-secondary">3.5 Turbo</span></div>
-        <svg width="16" height="17" viewBox="0 0 16 17" fill="none" className="text-token-text-tertiary">
-          <path d="M11.3346 7.83203L8.00131 11.1654L4.66797 7.83203" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-        </svg>
+      <div className="group flex cursor-pointer items-center gap-1 rounded-sm hover-light-dark dark:hover:bg-neutral-900">
+      <Menu as="div" className="relative inline-block text-left">
+        <div>
+            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md  px-3 py-2 text-sm font-semibold">
+                {selectedModel || 'Default Model'}
+                <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
+            </MenuButton>
+        </div>
+        <Transition
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+        >
+            <MenuItems className="absolute left-1/2 -translate-x-1/2 z-10 mt-2 w-56 origin-top-right rounded-md  shadow-lg ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-neutral-900">
+                <div className="py-1 px-1">
+                    {models.map((model) => (
+                        <MenuItem key={model.id} >
+                            {({ focus }) => (
+                                <button
+                                    onClick={() => handleModelChange(model.modelName, model.id)}
+                                    className={`rounded-md px-4 w-full py-2 text-sm text-left ${focus? 'bg-neutral-400 dark:bg-neutral-800' : ''}`}
+                                >
+                                    {model.modelName}
+                                </button>
+                            )}
+                        </MenuItem>
+                    ))}
+                </div>
+            </MenuItems>
+        </Transition>
+    </Menu>
       </div>
       <div className="absolute bottom-0 right-0 top-0 flex items-center">
         <button type="button" className="px-3">

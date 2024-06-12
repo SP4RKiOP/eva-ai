@@ -23,7 +23,6 @@ interface ChatProps {
     rtr: ReturnType<typeof useRouter>;
 }
 
-
 interface Message {
   role: string;
   text: string;
@@ -49,6 +48,7 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
                 },
                 body: JSON.stringify({
                     userId: userId,
+                    modelId: chatService.selectedModelId$.value,
                     userInput: text,
                     chatId: chatId
                 })
@@ -176,7 +176,7 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
                         <div className="flex h-screen flex-col">
-                            <Header /><ModelSelect />
+                            <Header service={chatService}/><ModelSelect service={chatService}/>
                             <div className='flex flex-col-reverse h-full overflow-y-auto'>
                                 <div className="translateZ(0px)">
                                     {messages.length === 0 ? ( <Greet />) : 
