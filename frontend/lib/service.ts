@@ -28,7 +28,6 @@ export class ChatService {
         const chatId = parsedMessage.ChatId;
         const partialContent = parsedMessage.PartialContent;
 
-        // Assuming msgs is an object where keys are chatIds and values are arrays of messages
         if (!this.msgs[chatId]) {
           this.msgs[chatId] = [];
         }

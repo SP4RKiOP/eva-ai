@@ -33,6 +33,7 @@ const chatService = new ChatService();
 const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => {
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
+    const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
     const handleMessageSubmit = async (text: string) => {
         try {
             // Add user's input text as a message in the current chat
@@ -50,7 +51,7 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
                     userId: userId,
                     modelId: chatService.selectedModelId$.value,
                     userInput: text,
-                    chatId: chatId
+                    chatId: chatId !== undefined ? chatId : currentChatId
                 })
             });
             if (!response.ok) {
@@ -58,7 +59,8 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
             }
             const newChatId = await response.text();
             if(newChatId!=null && newChatId.length!= 0) {
-                rtr.replace(`/c/${newChatId}`);
+                setCurrentChatId(newChatId);
+                window.history.pushState({}, '', `/c/${newChatId}`);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -122,12 +124,32 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
     }
 
     chatService.msgs$.subscribe((msgs) => {
-      if(chatId!=null && chatId.length!=0) {
+      if(chatId!==undefined) {
         if (msgs && msgs[chatId]) {
             // console.log('msgs:', msgs[chatId].join(''));
             const newMessage: Message = {
               role: "assistant", // Assuming all messages from Redis are from assistant
               text: msgs[chatId].join(''),
+            };
+            setMessages((prevMessages) => {
+              // Check if the last message is from the assistant and update it
+              if (
+                prevMessages.length > 0 &&
+                prevMessages[prevMessages.length - 1].role === "assistant"
+              ) {
+                return prevMessages.slice(0, -1).concat(newMessage);
+              } else {
+                // If the last message is not from the assistant, add the new message
+                return [...prevMessages, newMessage];
+              }
+            });
+          }
+      }else if(currentChatId!==undefined) {
+        if (msgs && msgs[currentChatId]) {
+            // console.log('msgs:', msgs[currentChatId].join(''));
+            const newMessage: Message = {
+              role: "assistant", // Assuming all messages from Redis are from assistant
+              text: msgs[currentChatId].join(''),
             };
             setMessages((prevMessages) => {
               // Check if the last message is from the assistant and update it
@@ -164,7 +186,7 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
           }
       }
     });
-  }, [userId]);
+  }, [userId, currentChatId]);
 
     
 
