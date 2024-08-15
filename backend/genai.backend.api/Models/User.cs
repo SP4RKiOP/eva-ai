@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace genai.backend.api.Models
 {
@@ -12,5 +13,11 @@ namespace genai.backend.api.Models
 
         // Navigation property for chat history
         public ICollection<ChatHistory> ChatHistory { get; set; }
+        public virtual ICollection<UserSubscription> UserSubscriptions { get; set; }
+
+        public User()
+        {
+            UserSubscriptions = new HashSet<UserSubscription>();
+        }
     }
 }

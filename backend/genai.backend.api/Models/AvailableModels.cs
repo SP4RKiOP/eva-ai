@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace genai.backend.api
+namespace genai.backend.api.Models
 {
     public class AvailableModel
     {

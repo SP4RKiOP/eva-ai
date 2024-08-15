@@ -12,36 +12,58 @@ namespace genai.backend.api.Services
         private readonly IConfiguration? _configuration;
         private readonly ApplicationDbContext _dbContext;
         private readonly ResponseStream _responseStream;
-
         public UserService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             _responseStream = responseStream;
         }
-
-        public string GetOrCreateUser(string emailId, string? firstName, string? lastName)
+        public async Task<string> GetCreateUser(string emailId, string? firstName, string? lastName)
         {
-            // Check if the user already exists in the database
-            var existingUser = _dbContext.Users.FirstOrDefault(u => u.Email == emailId);
-            if (existingUser != null && existingUser.UserId != null)
-            {
-                return existingUser.UserId;
-            }
-            else
+            // Attempt to fetch the user and their subscribed models in a single query
+            var user = await _dbContext.Users
+                .Include(u => u.UserSubscriptions)
+                    .ThenInclude(us => us.AvailableModel)
+                .FirstOrDefaultAsync(u => u.Email == emailId);
+
+            if (user == null)
             {
                 // User doesn't exist, so create a new one
-                var newUser = new User
+                user = new User
                 {
                     UserId = Guid.NewGuid().ToString(),
                     FirstName = firstName,
                     LastName = lastName,
                     Email = emailId
                 };
-                _dbContext.Users.Add(newUser);
-                _dbContext.SaveChanges();
-                return newUser.UserId; // Return the generated userId
+                // Create a default entry for UserSubscriptions
+                var defaultSubscription = new UserSubscription
+                {
+                    UserId = user.UserId,
+                    ModelId = _configuration.GetValue<int>("DefaultModelId"), // Set the default ModelId as needed
+                    User = user, // Set the User navigation property
+                    AvailableModel = await _dbContext.AvailableModels.FirstOrDefaultAsync() // Set the AvailableModel navigation property
+                };
+                _dbContext.UserSubscriptions.Add(defaultSubscription);
+                _dbContext.Users.Add(user);
+                await _dbContext.SaveChangesAsync();
             }
+
+            // Prepare and send subscribed models data
+            var subscribedModels = user.UserSubscriptions?
+                .Select(us => new
+                {
+                    Id = us.ModelId,
+                    ModelName = us.AvailableModel.DeploymentName.ToUpper()
+                })
+                .ToList();
+
+            if (subscribedModels != null && subscribedModels.Count > 0)
+            {
+                 await _responseStream.AvailableModels(user.UserId, subscribedModels.ToArray());
+            }
+
+            return user.UserId; // Return the UserId
         }
         public async Task GetChatTitlesForUser(string userId)
         {
@@ -62,7 +84,6 @@ namespace genai.backend.api.Services
                     foreach (var chatTitle in chatTitles)
                     {
                         await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(chatTitle));
-                        Console.WriteLine(chatTitle);
                     }
                 }
 

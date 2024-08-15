@@ -26,9 +26,9 @@ namespace genai.backend.api.Controllers
                 return BadRequest("EmailId is required.");
             }
 
-            string uId = _userService.GetOrCreateUser(request.EmailId, request.FirstName, request.LastName);
-            await _userService.GetChatTitlesForUser(userId:uId);
-            await _userService.GetAvailableModels(userId:uId);
+            string uId = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName);
+            await _userService.GetChatTitlesForUser(userId:uId);/*
+            await _userService.GetAvailableModels(userId:uId);*/
             return Ok(uId);
         }
     }
