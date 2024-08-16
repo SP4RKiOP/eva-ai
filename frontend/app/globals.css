@@ -109,6 +109,9 @@
       background-color: var(--gray-800);
     }
   }
+  .skeleton {
+    background: #212121;
+  }
   .sbOrigin {
     transform: translateY(0.15rem) rotate(0deg) translateZ(0px);
     transition: transform 0.3s ease, background-color 0.3s ease;
@@ -142,6 +145,9 @@
     &:hover {
       background-color: var(--gray-200);
     }
+  }
+  .skeleton {
+    background-color: var(--gray-300);
   }
   .sbOrigin {
     transform: translateY(0.15rem) rotate(0deg) translateZ(0px);

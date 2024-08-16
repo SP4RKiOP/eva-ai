@@ -74,7 +74,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
     };
    }, []);
   return (
-    <div className={`w-96 inset-0 z-50 md:flex-shrink-0 md:overflow-x-hidden md:w-64 max-md:fixed ${chatHistoryVisible ? 'hidden md:block' : 'block md:hidden'}`}>
+    <div className={` w-80 inset-0 z-50 md:flex-shrink-0 md:overflow-x-hidden md:w-64 max-md:fixed ${chatHistoryVisible ? 'hidden md:block' : 'block md:hidden'}`}>
       <div className="md:hidden block absolute top-1 right-0 mr-2 z-50">
               <button type="button" className="ml-1 flex h-10 w-10 items-center justify-center text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" onClick={toggleChatHistoryVisibility}>
                 <span className="sr-only">Close sidebar</span>
@@ -100,7 +100,17 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
                     </a>
                   </div>
                 </div>
-                <div className='flex flex-col gap-2 pt-4 pb-4 text-sm'>
+                {chatTitles.length === 0 ? (
+                  <div className="flex flex-col gap-2 pt-6 pb-4 text-sm animate-pulse">
+                  <div className="h-6 rounded mb-2 skeleton"></div>
+                  <div className="h-6 rounded mb-2 skeleton"></div>
+                  <div className="h-6 rounded mb-2 skeleton"></div>
+                  <div className="h-6 rounded mb-2 skeleton"></div>
+                  <div className="h-6 rounded mb-2 skeleton"></div>
+                  <div className="h-6 rounded mb-2 skeleton"></div>
+                </div>
+                ): (
+                  <div className='flex flex-col gap-2 pt-4 pb-4 text-sm'>
                   {chatTitles.map((chatTitle) => (
                     <div key={chatTitle.ChatId} className="relative grow overflow-hidden whitespace-nowrap">
                       <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark`}>
@@ -111,6 +121,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
                     </div>
                   ))}
                 </div>
+                )}
                 <div className="absolute bottom-0 pb-3.5">
                     <button className="flex w-full items-center gap-2 rounded-lg p-2 text-sm hover:bg-token-sidebar-surface-secondary group-ui-open:bg-token-sidebar-surface-secondary" id="headlessui-menu-button-:r1ha:" type="button" aria-haspopup="true" aria-expanded="false" data-headlessui-state="">
                       <div className="flex-shrink-0">

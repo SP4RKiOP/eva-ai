@@ -1,14 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState} from 'react';
 import Input from './input';
 import ChatHistory from './chat-history';
 import Sidebar from './sidebar';
 import Header from './header';
 import ModelSelect from './model-select';
 import Greet from './greet';
-import {
-    IconChatIQ
-  } from '@/components/ui/icons'
 import {ChatService} from '../lib/service'; 
 import { VisibilityProvider } from './VisibilityContext';
 import {useRouter} from 'next/navigation';
@@ -26,6 +22,7 @@ interface ChatProps {
 interface Message {
   role: string;
   text: string;
+  isPlaceholder?: boolean;
 }
 // Create an instance of ChatService
 const chatService = new ChatService();
@@ -42,6 +39,13 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
                 text: text
             };
             setMessages((prevMessages) => [...prevMessages, userMessage]);
+            // Add a placeholder for the assistant's response
+            const placeholderMessage: Message = {
+                role: 'assistant',
+                text: '',
+                isPlaceholder: true
+            };
+            setMessages((prevMessages) => [...prevMessages, placeholderMessage]);
             const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                 method: 'POST',
                 headers: {
@@ -66,6 +70,27 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
             console.error('Error:', error);
         }
     };
+    const SkeletonLoader = () => (
+      
+        <div className="mt-1 flex flex-col space-y-2.5 animate-pulse w-fit md:w-[calc(100%-2rem)]">
+            <div className="flex items-center w-full">
+                <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-40"></div>
+                <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-24"></div>
+                <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-full"></div>
+            </div>
+            <div className="flex items-center w-full ">
+                <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-full"></div>
+                        <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-full"></div>
+                <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-24"></div>
+            </div>
+            <div className="flex items-center w-full max-md:hidden">
+                <div className="h-2.5 bg-gray-300 rounded-full dark:bg-gray-600 w-full"></div>
+                <div className="h-2.5 ms-2 bg-gray-200 rounded-full dark:bg-gray-700 w-80"></div>
+                <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-full"></div>
+            </div>
+        </div>
+
+    );
     useEffect(() => {
     // Fetch latest chat history
     if (chatId && chatId.length > 0) {
@@ -219,9 +244,14 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
                                                         </div>
                                                     </div>
                                                     <div className='relative flex w-full flex-col'>
-                                                        <div className="font-bold select-none capitalize">{message.role==='user'? (fName):('ChatIQ')}</div>
+                                                        <div className="font-bold select-none capitalize">
+                                                          {message.role==='user'? (fName):('ChatIQ')}</div>
                                                         <div className='min-h-[20px] font-sans flex flex-col items-start gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto'>
+                                                        {message.isPlaceholder ? (
+                                                            <SkeletonLoader />
+                                                        ) : (
                                                             <ReactMarkdown>{message.text}</ReactMarkdown>
+                                                        )}
                                                         </div>
                                                     </div>
                                                 </div>

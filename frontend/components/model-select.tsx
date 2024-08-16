@@ -50,7 +50,18 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
                             leaveFrom="transform opacity-100 scale-100"
                             leaveTo="transform opacity-0 scale-95"
                         >
-                            <MenuItems className="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md  shadow-lg ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-neutral-900">
+                            <MenuItems className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md  shadow-lg ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-neutral-900">
+                            {models.length <= 0 ? (
+                                <div className="py-1 px-1">
+                                    <MenuItem>
+                                    <div className="animate-pulse">
+                                        <div className="mb-1 h-6 rounded skeleton"></div>
+                                        <div className="mb-1 h-6 rounded skeleton"></div>
+                                        <div className="h-6 rounded skeleton"></div>
+                                    </div>
+                                    </MenuItem>
+                                </div>
+                            ):(
                                 <div className="py-1 px-1">
                                     {models.map((model) => (
                                         <MenuItem key={model.id} >
@@ -65,6 +76,7 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
                                         </MenuItem>
                                     ))}
                                 </div>
+                            )}
                             </MenuItems>
                         </Transition>
                     </Menu>
