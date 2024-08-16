@@ -5,10 +5,10 @@ import Sidebar from './sidebar';
 import Header from './header';
 import ModelSelect from './model-select';
 import Greet from './greet';
-import {ChatService} from '../lib/service'; 
 import { VisibilityProvider } from './VisibilityContext';
 import {useRouter} from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
+import { ChatService } from '@/lib/service';
 
 interface ChatProps {
     chatId?: string;
@@ -17,6 +17,7 @@ interface ChatProps {
     uMail: string;
     uImg: string;
     rtr: ReturnType<typeof useRouter>;
+    chatService: ChatService;
 }
 
 interface Message {
@@ -24,10 +25,9 @@ interface Message {
   text: string;
   isPlaceholder?: boolean;
 }
-// Create an instance of ChatService
-const chatService = new ChatService();
 
-const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => {
+
+const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uImg, rtr}) => {
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);

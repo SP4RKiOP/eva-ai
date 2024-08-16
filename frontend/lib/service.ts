@@ -67,18 +67,27 @@ export class ChatService {
             console.log("SignalR Connected.");
         } catch (err) {
             console.log(err);
-            setTimeout(() => this.start(), 5000);
+            setTimeout(() => this.start(), 1000);
         }
     }
 
     //join chatId
     public async joinChat(userId: string) {
-        if (this.connection.state === signalR.HubConnectionState.Connected) {
-            return this.connection.invoke("JoinRoom", { userId });
-        } else {
-            console.error("Connection is not in the 'Connected' state. Cannot join chat.");
-            // Optionally, you can handle this case differently, e.g., by retrying the connection or notifying the user.
+        try{
+          console.log("User joined chat:", userId);
+          return this.connection.invoke("JoinRoom", { userId });
+          
+      }catch(err){
+        console.error("Error joining chat:", err);
+        if (this.connection.state === signalR.HubConnectionState.Disconnected) {
+          setTimeout(async () => {
+            console.log("Reconnecting...");
+            await this.start();
+            await this.joinChat(userId);
+            console.log("Reconnected.");
+        }, 500);
         }
+      }
     }
     //leave chatId
     public async leaveChat(chatId: string){
