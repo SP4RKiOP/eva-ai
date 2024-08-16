@@ -19,9 +19,17 @@ const Header: React.FC<HeaderProps> = ({ service }) => {
   const [selectedModel, setSelectedModel] = useState<string>('');
 
   useEffect(() => {
+    // Load models from session storage if available
+    const savedModels = sessionStorage.getItem('models');
+    if (savedModels) {
+    setModels(JSON.parse(savedModels));
+    }
     // Subscribe to availableModels changes
     const subscription = service.availableModels$.subscribe(models => {
-      setModels(models);
+      if(models && models.length > 0) {
+        setModels(models);
+        sessionStorage.setItem('models', JSON.stringify(models));
+      }
     });
 
     // Cleanup subscription on component unmount
@@ -31,7 +39,6 @@ const Header: React.FC<HeaderProps> = ({ service }) => {
   const handleModelChange = (modelName: string, id: number) => {
     setSelectedModel(modelName);
     service.selectedModelId$.next(id);
-    console.log(`Selected model: ${service.selectedModelId$.value}`);
   };
   
   return (

@@ -114,39 +114,51 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
         })
         .catch((error) => console.error("Error fetching chat history:", error));
     }
-
-    // Construct the data object to be sent to your API
-    const userData = {
-      emailId: uMail,
-      firstName: fName,
-      lastName: lName,
-    };
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-    // Send userData to your API endpoint
-    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to send user data to the API");
-        }
-        return response.text();
+    if(sessionStorage.getItem('userId')==null || sessionStorage.getItem('userId')?.length==0) {
+      const userData = {
+        emailId: uMail,
+        firstName: fName,
+        lastName: lName,
+      };
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+      // Send userData to your API endpoint
+      fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
       })
-      .then((data) => {
-        setUserId(data as string);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
-
-    //sessionStorage.setItem('userId', userId ||'');
-    if (userId) {
-      chatService.joinChat(userId);
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to send user data to the API");
+          }
+          return response.text();
+        })
+        .then(async (data) => {
+          chatService.joinChat(data as string);
+          sessionStorage.setItem('userId', data as string);
+          fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/StreamUserData`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({userId: data}),
+          })
+          .then( (response) => {
+            if (response.ok) {
+              setUserId(data as string);
+            }
+          })
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    }else {
+      chatService.joinChat(sessionStorage.getItem('userId') as string);
+      setUserId(sessionStorage.getItem('userId') as string);
     }
+    
 
     chatService.msgs$.subscribe((msgs) => {
       if(chatId!==undefined) {

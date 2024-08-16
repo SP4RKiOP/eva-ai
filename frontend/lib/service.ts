@@ -42,7 +42,6 @@ export class ChatService {
       setTimeout(() => {
         this.msgs = {};
         this.msgs$.next(this.msgs);
-        console.log("Stream ended, msgs cleared.");
       }, 2500); // 1000 milliseconds = 1 seconds
     });
     this.connection.on("ChatTitles", (chatTitles: any) => {
@@ -58,7 +57,6 @@ export class ChatService {
     this.connection.on("ClearChatTitles", () => {
       this.chatTitles = [];
       this.chatTitles$.next(this.chatTitles);
-      console.log("Chat titles cleared.");
     });
   }
 

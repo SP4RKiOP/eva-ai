@@ -16,9 +16,17 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
     const [selectedModel, setSelectedModel] = useState<string>('');
 
     useEffect(() => {
+        // Load models from session storage if available
+        const savedModels = sessionStorage.getItem('models');
+        if (savedModels) {
+        setModels(JSON.parse(savedModels));
+        }
         // Subscribe to availableModels changes
         const subscription = service.availableModels$.subscribe(models => {
-          setModels(models);
+          if(models && models.length > 0) {
+            setModels(models);
+            sessionStorage.setItem('models', JSON.stringify(models));
+          }
         });
     
         // Cleanup subscription on component unmount

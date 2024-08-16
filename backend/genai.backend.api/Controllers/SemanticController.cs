@@ -66,8 +66,8 @@ namespace genai.backend.api.Controllers
         [HttpGet("convhistory/{chatId}")]
         public async Task<IActionResult> GetConvHistory(string chatId)
         {
-            var chatTitlesJson = await _semanticService.GetChatHistory(chatId);
-            return Ok(chatTitlesJson);
+            var chatJson = await _semanticService.GetChatHistory(chatId);
+            return Ok(chatJson);
         }
 
         

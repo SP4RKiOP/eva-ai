@@ -26,10 +26,33 @@ namespace genai.backend.api.Controllers
                 return BadRequest("EmailId is required.");
             }
 
-            string uId = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName);
-            await _userService.GetChatTitlesForUser(userId:uId);/*
-            await _userService.GetAvailableModels(userId:uId);*/
-            return Ok(uId);
+            try
+            {
+                string uId = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName);
+                return Ok(uId);
+            }
+            catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpPost("StreamUserData")]
+        public async Task<IActionResult> StreamUserData([FromBody] UserStreamRequest request)
+        {
+            if (request == null || string.IsNullOrEmpty(request.UserId))
+            {
+                return BadRequest("UserId is required.");
+            }
+
+            try
+            {
+                await _userService.GetChatTitlesForUser(request.UserId);
+                await _userService.GetAvailableModels(userId: request.UserId);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 
@@ -38,5 +61,9 @@ namespace genai.backend.api.Controllers
         public string EmailId { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+    }
+    public class UserStreamRequest
+    {
+        public string UserId { get; set; }
     }
 }

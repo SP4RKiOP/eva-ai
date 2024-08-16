@@ -22,8 +22,6 @@ namespace genai.backend.api.Services
         {
             // Attempt to fetch the user and their subscribed models in a single query
             var user = await _dbContext.Users
-                .Include(u => u.UserSubscriptions)
-                    .ThenInclude(us => us.AvailableModel)
                 .FirstOrDefaultAsync(u => u.Email == emailId);
 
             if (user == null)
@@ -44,23 +42,9 @@ namespace genai.backend.api.Services
                     User = user, // Set the User navigation property
                     AvailableModel = await _dbContext.AvailableModels.FirstOrDefaultAsync() // Set the AvailableModel navigation property
                 };
-                _dbContext.UserSubscriptions.Add(defaultSubscription);
                 _dbContext.Users.Add(user);
+                _dbContext.UserSubscriptions.Add(defaultSubscription);
                 await _dbContext.SaveChangesAsync();
-            }
-
-            // Prepare and send subscribed models data
-            var subscribedModels = user.UserSubscriptions?
-                .Select(us => new
-                {
-                    Id = us.ModelId,
-                    ModelName = us.AvailableModel.DeploymentName.ToUpper()
-                })
-                .ToList();
-
-            if (subscribedModels != null && subscribedModels.Count > 0)
-            {
-                 await _responseStream.AvailableModels(user.UserId, subscribedModels.ToArray());
             }
 
             return user.UserId; // Return the UserId
@@ -90,22 +74,25 @@ namespace genai.backend.api.Services
             }
             catch (Exception ex)
             {
+                // Log or
+                Console.WriteLine(ex.ToString());
                 // Handle exceptions
                 await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(new { ChatId = userId, ChatTitle = "No Chat Found", CreatedOn = DateTime.Now }));
             }
         }
         public async Task GetAvailableModels(string userId)
         {
-            var models = await _dbContext.AvailableModels
-            .Where(m => m.ModelType == "chat-completion")
+            var models = await _dbContext.UserSubscriptions
+            .Include(u => u.AvailableModel)
+            .Where(u => u.UserId == userId)
             .Select(m => new
             {
-                Id = m.DeploymentId,
-                ModelName = m.DeploymentName.ToUpper()
+                Id = m.ModelId,
+                ModelName = m.AvailableModel.DeploymentName.ToUpper()
             })
             .ToListAsync();
 
-            if(models !=null)
+            if (models != null)
             {
                 await _responseStream.AvailableModels(userId, models.ToArray());
             }

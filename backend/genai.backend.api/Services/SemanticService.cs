@@ -110,7 +110,7 @@ namespace genai.backend.api.Services
                     {
                         fullMessage.Append(chatUpdate.Content);
                         await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = chatId, PartialContent = chatUpdate.Content }));
-                        await Task.Delay(30);//5ms response stream delay for smooth chat stream
+                        await Task.Delay(50);//5ms response stream delay for smooth chat stream
                     }
                 }
                 await _responseStream.EndStream(userId);
@@ -169,7 +169,7 @@ namespace genai.backend.api.Services
                     {
                         fullMessage.Append(chatUpdate.Content);
                         await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = userId, PartialContent = chatUpdate.Content }));
-                        await Task.Delay(30);//5ms response stream delay for smooth chat stream
+                        await Task.Delay(50);//5ms response stream delay for smooth chat stream
                     }
                 }
                 await _responseStream.EndStream(userId);
