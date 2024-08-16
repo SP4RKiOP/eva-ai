@@ -147,7 +147,7 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
           })
           .then( (response) => {
             if (response.ok) {
-              setUserId(data as string);
+              setTimeout(() => {setUserId(data as string)}, 2000);
             }
           })
         })
@@ -155,10 +155,11 @@ const Chat: React.FC<ChatProps> = ({chatId, fName, lName, uMail, uImg, rtr}) => 
           console.error("Error:", error);
         });
     }else {
-      chatService.joinChat(sessionStorage.getItem('userId') as string);
       setUserId(sessionStorage.getItem('userId') as string);
     }
-    
+    if(userId){
+      chatService.joinChat(userId);
+    }
 
     chatService.msgs$.subscribe((msgs) => {
       if(chatId!==undefined) {
