@@ -66,6 +66,10 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
           setChatTitles(uniqueTitles);
           // Update the local storage with the merged and sorted data
           localStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map(title => JSON.stringify(title))));
+        }else{
+          if(!localStorage.getItem('chatTitles')){
+            setChatTitles([]);
+          }
         }
       });
 

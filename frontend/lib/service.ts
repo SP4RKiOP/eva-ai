@@ -55,6 +55,7 @@ export class ChatService {
       console.log("Available models updated. Models:", this.availableModels);
     });
     this.connection.on("ClearChatTitles", () => {
+      localStorage.removeItem("chatTitles");
       this.chatTitles = [];
       this.chatTitles$.next(this.chatTitles);
     });

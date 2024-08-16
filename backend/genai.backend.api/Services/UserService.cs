@@ -63,7 +63,7 @@ namespace genai.backend.api.Services
                         ch.CreatedOn 
                     })
                     .ToListAsync();
-                if (chatTitles != null)
+                if (chatTitles != null && chatTitles.Count > 0)
                 {
                     foreach (var chatTitle in chatTitles)
                     {
