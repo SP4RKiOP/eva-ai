@@ -65,6 +65,9 @@ export class ChatService {
         try {
             await this.connection.start();
             console.log("SignalR Connected.");
+            if(sessionStorage.getItem('userId')){
+                await this.joinChat(sessionStorage.getItem('userId') as string);
+            }
         } catch (err) {
             console.log(err);
             setTimeout(() => this.start(), 1000);
@@ -74,17 +77,18 @@ export class ChatService {
     //join chatId
     public async joinChat(userId: string) {
         try{
-          console.log("User joined chat:", userId);
-          return this.connection.invoke("JoinRoom", { userId });
-          
+          if (this.connection.state === signalR.HubConnectionState.Connected) {
+            return this.connection.invoke("JoinRoom", { userId });
+
+        } else {
+            console.error("Connection is not in the 'Connected' state. Cannot join chat.");
+        }
       }catch(err){
         console.error("Error joining chat:", err);
         if (this.connection.state === signalR.HubConnectionState.Disconnected) {
           setTimeout(async () => {
-            console.log("Reconnecting...");
             await this.start();
             await this.joinChat(userId);
-            console.log("Reconnected.");
         }, 500);
         }
       }
