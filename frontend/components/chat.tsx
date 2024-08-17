@@ -54,7 +54,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                     userId: userId,
                     modelId: chatService.selectedModelId$.value,
                     userInput: text,
-                    chatId: chatId !== undefined ? chatId : currentChatId
+                    chatId: currentChatId
                 })
             });
             if (!response.ok) {
@@ -90,28 +90,43 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         </div>
 
     );
+    const handleNewChat = () => {
+      chatId = undefined;
+      setMessages([]);
+      window.history.pushState({}, '', `/`);
+      setCurrentChatId(undefined);
+    };
+    const handleOldChat = async (iD?: string) => {
+      setMessages([]);
+      window.history.pushState({}, '', `/c/${iD}`);
+      setCurrentChatId(iD);
+    };
+
     useEffect(() => {
+      if(chatId){setCurrentChatId(chatId);}
     // Fetch latest chat history
-    if (chatId && chatId.length > 0) {
-      fetch(
-        `${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/convhistory/${chatId}`
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          if (data && data.length > 0) {
-            const newMessages: Message[] = data
-              .filter(
-                (chat: any) =>
-                  chat.Role.Label === "assistant" || chat.Role.Label === "user"
-              )
-              .map((chat: any) => ({
-                role: chat.Role.Label,
-                text: chat.Content,
-              }));
-            setMessages(newMessages);
-          }
-        })
-        .catch((error) => console.error("Error fetching chat history:", error));
+    if (currentChatId) {
+      if(messages.length==0) {
+        fetch(
+          `${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/convhistory/${currentChatId}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data && data.length > 0) {
+              const newMessages: Message[] = data
+                .filter(
+                  (chat: any) =>
+                    chat.Role.Label === "assistant" || chat.Role.Label === "user"
+                )
+                .map((chat: any) => ({
+                  role: chat.Role.Label,
+                  text: chat.Content,
+                }));
+              setMessages(newMessages);
+            }
+          })
+          .catch((error) => console.error("Error fetching chat history:", error));
+      }
     }
     if((sessionStorage.getItem('userId')==null || sessionStorage.getItem('userId')?.length==0) && uMail.length>0) {
       const userData = {
@@ -165,27 +180,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     }
 
     chatService.msgs$.subscribe((msgs) => {
-      if(chatId!==undefined) {
-        if (msgs && msgs[chatId]) {
-            // console.log('msgs:', msgs[chatId].join(''));
-            const newMessage: Message = {
-              role: "assistant", // Assuming all messages from Redis are from assistant
-              text: msgs[chatId].join(''),
-            };
-            setMessages((prevMessages) => {
-              // Check if the last message is from the assistant and update it
-              if (
-                prevMessages.length > 0 &&
-                prevMessages[prevMessages.length - 1].role === "assistant"
-              ) {
-                return prevMessages.slice(0, -1).concat(newMessage);
-              } else {
-                // If the last message is not from the assistant, add the new message
-                return [...prevMessages, newMessage];
-              }
-            });
-          }
-      }else if(currentChatId!==undefined) {
+      if(currentChatId!==undefined) {
         if (msgs && msgs[currentChatId]) {
             // console.log('msgs:', msgs[currentChatId].join(''));
             const newMessage: Message = {
@@ -234,7 +229,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
-                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} chatId={chatId !== undefined ? chatId : currentChatId}/>
+                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} chatId={currentChatId} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
                 <div className="relative flex-1 flex-col overflow-hidden">
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>

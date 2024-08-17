@@ -17,9 +17,11 @@ interface ChatHistoryProps {
   userImage: string;
   service: ChatService;
   chatId: string | undefined;
+  onNewChatClick: () => void;
+  onOldChatClick: (iD?: string) => void;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName, userImage, chatId }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName, userImage, chatId, onNewChatClick, onOldChatClick }) => {
   const { chatHistoryVisible } = useVisibility();
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
@@ -43,7 +45,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
   };
 
   useEffect(() => {
-    console.log(chatId);
     const fetchAndStoreChatTitles = async () => {
       const cachedTitles = localStorage.getItem('chatTitles');
       let existingTitles: ChatTitle[] = [];
@@ -121,14 +122,20 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
       <div className="h-full chat-history overflow-y-scroll">
         <nav className="flex flex-col justify-between h-full w-full px-3 py-3" aria-label="Chat history">
           <div className="max-md:pt-10">
-            <a className={`flex h-10 items-center gap-2 rounded-lg p-2 font-bold hover-light-dark`} href="/">
-              <div className="h-7 w-7">
-                <div className="gizmo-shadow-stroke relative flex h-full items-center justify-center rounded-full text-gray-950">
-                  <IconChatIQ className="mx-auto h-10 w-10" />
-                </div>
+          <button
+            className={`flex h-10 items-center gap-2 rounded-lg p-2 font-bold hover-light-dark`}
+            onClick={(e) => {
+              e.preventDefault();
+              onNewChatClick();
+            }}
+          >
+            <div className="h-7 w-7">
+              <div className="gizmo-shadow-stroke relative flex h-full items-center justify-center rounded-full text-gray-950">
+                <IconChatIQ className="mx-auto h-10 w-10" />
               </div>
-              <span className="group-hover:text-gray-950 dark:group-hover:text-gray-200">New Chat</span>
-            </a>
+            </div>
+            <span className="group-hover:text-gray-950 dark:group-hover:text-gray-200">New Chat</span>
+          </button>
           </div>
           {chatTitles.length === 0 ? (
             <div className="flex flex-col gap-2 pt-6 pb-4 text-sm animate-pulse">
@@ -144,9 +151,13 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
               {chatTitles.map((chatTitle) => (
                 <div key={chatTitle.ChatId} className={`relative pt-1 pb-1 overflow-x-hidden whitespace-nowrap group`}>
                   <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark ${chatTitle.ChatId == chatId ? 'skeleton' : ''}`}>
-                    <a href={`/c/${chatTitle.ChatId}`} className="group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip">
+                    {/* <a onClick={() => onOldChatClick(chatTitle.ChatId)}  className="group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip">
                       {chatTitle.ChatTitle}
-                    </a>
+                    </a> */}
+                    <button
+                      className={`group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip`}
+                      onClick={() => onOldChatClick(chatTitle.ChatId)}
+                    >{chatTitle.ChatTitle}</button>
                   </div>
                   {/* Dropdown menu for each chat title */}
                   <div className={`absolute right-9 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 ${chatTitle.ChatId == chatId ? 'opacity-100' : ''} transition-opacity `}>
