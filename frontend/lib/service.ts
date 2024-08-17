@@ -3,11 +3,7 @@ import { BehaviorSubject } from 'rxjs';
 
 export class ChatService {
     public connection: signalR.HubConnection = new signalR.HubConnectionBuilder()
-    .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/chat", {
-        skipNegotiation: true,
-        transport: signalR.HttpTransportType.WebSockets
-    
-    })
+    .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/chat")
     .configureLogging(signalR.LogLevel.Information)
     .build();
 
@@ -18,6 +14,8 @@ export class ChatService {
     public availableModels$ = new BehaviorSubject<any>([]);
     public availableModels: any[]=[];
     public selectedModelId$ = new BehaviorSubject<number>(1);
+    public HubConnectionState = signalR.HubConnectionState;
+    public roomJoined$ = new BehaviorSubject<boolean>(false);
 
     constructor() {
     this.start();
@@ -51,8 +49,6 @@ export class ChatService {
     this.connection.on("AvailableModels", (availableModels: any) => {
       this.availableModels = availableModels;
       this.availableModels$.next(this.availableModels);
-
-      console.log("Available models updated. Models:", this.availableModels);
     });
     this.connection.on("ClearChatTitles", () => {
       localStorage.removeItem("chatTitles");
@@ -64,22 +60,34 @@ export class ChatService {
     //start connection
     public async start(){
         try {
-            await this.connection.start();
-            console.log("SignalR Connected.");
-            if(sessionStorage.getItem('userId')){
-                await this.joinChat(sessionStorage.getItem('userId') as string);
-            }
+            await this.connection.start()
+            .then(() => {
+                console.log("SignalR Connected.");
+                if(typeof window !== 'undefined' &&sessionStorage.getItem('userId')){
+                  this.connection.invoke("JoinRoom", { userId: sessionStorage.getItem('userId') });
+                  this.roomJoined$.next(true);
+                  console.log("User joined successfully.", sessionStorage.getItem('userId'));
+                }
+            });
         } catch (err) {
             console.log(err);
-            setTimeout(() => this.start(), 1000);
         }
+    }
+
+    //stop connection
+    public async stop(){
+        this.connection.stop();
+        this.roomJoined$.next(false);
+        console.log("SignalR Disconnected.");
     }
 
     //join chatId
     public async joinChat(userId: string) {
         try{
           if (this.connection.state === signalR.HubConnectionState.Connected) {
-            return this.connection.invoke("JoinRoom", { userId });
+            this.connection.invoke("JoinRoom", { userId });
+            this.roomJoined$.next(true);
+            console.log("User joined successfully with joinChat function.", userId);
 
         } else {
             console.error("Connection is not in the 'Connected' state. Cannot join chat.");
@@ -90,6 +98,8 @@ export class ChatService {
           setTimeout(async () => {
             await this.start();
             await this.joinChat(userId);
+            this.roomJoined$.next(true);
+            console.log("Reconnected after error. joinChat function.", userId);
         }, 500);
         }
       }

@@ -2,14 +2,13 @@ import React, { useEffect, useState} from 'react';
 import Input from './input';
 import ChatHistory from './chat-history';
 import Sidebar from './sidebar';
-import Header from './header';
-import ModelSelect from './model-select';
+import Header from './header-mobile';
+import ModelSelect from './header-desktop';
 import Greet from './greet';
 import { VisibilityProvider } from './VisibilityContext';
 import {useRouter} from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { ChatService } from '@/lib/service';
-
 interface ChatProps {
     chatId?: string;
     fName: string;
@@ -114,7 +113,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         })
         .catch((error) => console.error("Error fetching chat history:", error));
     }
-    if(sessionStorage.getItem('userId')==null || sessionStorage.getItem('userId')?.length==0) {
+    if((sessionStorage.getItem('userId')==null || sessionStorage.getItem('userId')?.length==0) && uMail.length>0) {
       const userData = {
         emailId: uMail,
         firstName: fName,
@@ -136,7 +135,9 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           return response.text();
         })
         .then(async (data) => {
-          chatService.joinChat(data as string);
+          if(chatService.HubConnectionState.Connected && !chatService.roomJoined$.value) {
+            chatService.joinChat(data as string);
+          }
           sessionStorage.setItem('userId', data as string);
           fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/StreamUserData`, {
             method: "POST",
@@ -158,7 +159,9 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
       setUserId(sessionStorage.getItem('userId') as string);
     }
     if(userId){
-      chatService.joinChat(userId);
+      if(chatService.HubConnectionState.Connected && !chatService.roomJoined$.value) {
+        chatService.joinChat(userId);
+      }
     }
 
     chatService.msgs$.subscribe((msgs) => {
@@ -231,7 +234,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
-                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} />
+                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} chatId={chatId !== undefined ? chatId : currentChatId}/>
                 <div className="relative flex-1 flex-col overflow-hidden">
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
@@ -241,7 +244,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                 <div className="translateZ(0px)">
                                     {messages.length === 0 ? ( <Greet />) : 
                                     (messages.map((message, index) => (
-                                            <div key={index} className='px-4 py-2 justify-center text-base md:gap-6 mb-8'>
+                                            <div key={index} className={`px-4 py-2 justify-center text-base md:gap-6 mb-8 `}>
                                                 <div className='flex flex-1 text-base mx-auto gap-3 md:px-5 lg:px-1 xl:px-5 md:max-w-3xl lg:max-w-[40rem] xl:max-w-[48rem] group'>
                                                     <div className="flex-shrink-0 flex flex-col relative items-end">
                                                         <div>
@@ -259,11 +262,11 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                     <div className='relative flex w-full flex-col'>
                                                         <div className="font-bold select-none capitalize">
                                                           {message.role==='user'? (fName):('ChatIQ')}</div>
-                                                        <div className='min-h-[20px] font-sans flex flex-col items-start gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto'>
+                                                        <div className={`min-h-[20px] font-sans flex flex-col items-start gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto ${message.role === 'user' ? 'bg-[#2f2f2f] text-white rounded-full px-4 py-1.5 w-fit' : ''}`}>
                                                         {message.isPlaceholder ? (
                                                             <SkeletonLoader />
                                                         ) : (
-                                                            <ReactMarkdown>{message.text}</ReactMarkdown>
+                                                            <div className='prose dark:prose-invert'><ReactMarkdown>{message.text}</ReactMarkdown></div>
                                                         )}
                                                         </div>
                                                     </div>

@@ -118,7 +118,7 @@ namespace genai.backend.api.Services
                 oldchatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
 
                 existingChatHistory.ChatHistoryJson = JsonSerializer.Serialize(oldchatHistory);
-                existingChatHistory.CreatedOn = DateTime.Now;
+                existingChatHistory.CreatedOn = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync();
                 await _responseStream.ClearChatTitles(userId);
                 await _userService.GetChatTitlesForUser(userId);
@@ -184,7 +184,7 @@ namespace genai.backend.api.Services
                     ChatId = newChatId,
                     ChatTitle = newTitle,
                     ChatHistoryJson = updatedJsonChatHistory,
-                    CreatedOn = DateTime.Now
+                    CreatedOn = DateTime.UtcNow
                 };
                 _dbContext.ChatHistory.Add(dbchatHistory);
                 await _dbContext.SaveChangesAsync();

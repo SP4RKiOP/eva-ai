@@ -49,12 +49,12 @@ const Header: React.FC<HeaderProps> = ({ service }) => {
           <path fillRule="evenodd" clipRule="evenodd" d="M3 8C3 7.44772 3.44772 7 4 7H20C20.5523 7 21 7.44772 21 8C21 8.55228 20.5523 9 20 9H4C3.44772 9 3 8.55228 3 8ZM3 16C3 15.4477 3.44772 15 4 15H14C14.5523 15 15 15.4477 15 16C15 16.5523 14.5523 17 14 17H4C3.44772 17 3 16.5523 3 16Z" fill="currentColor"></path>
         </svg>
       </button>
-      <div className="group flex cursor-pointer items-center gap-1 rounded-sm hover-light-dark dark:hover:bg-neutral-900">
+      <div className="group flex cursor-pointer items-center gap-1 rounded-xl hover-light-dark dark:hover:bg-neutral-900">
       <Menu as="div" className="relative inline-block text-left">
         <div>
-            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md  px-3 py-2 text-sm font-semibold">
+            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-xl  px-3 py-2 text-sm font-semibold">
                 {selectedModel || 'Default Model'}
-                <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
+                <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400"/>
             </MenuButton>
         </div>
         <Transition
@@ -65,14 +65,14 @@ const Header: React.FC<HeaderProps> = ({ service }) => {
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
         >
-            <MenuItems className="absolute left-1/2 -translate-x-1/2 z-10 mt-2 w-48 origin-top-right rounded-md  shadow-lg ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-neutral-900">
+            <MenuItems className="absolute left-1/2 -translate-x-1/2 z-10 mt-2 w-48 origin-top-right rounded-xl  shadow-lg ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-[#171717]">
             {models.length <= 0 ? (
                 <div className="py-1 px-1">
                     <MenuItem>
                     <div className="animate-pulse">
-                        <div className="mb-1 h-6 rounded skeleton"></div>
-                        <div className="mb-1 h-6 rounded skeleton"></div>
-                        <div className="h-6 rounded skeleton"></div>
+                        <div className="mb-1 h-6 rounded-xl skeleton"></div>
+                        <div className="mb-1 h-6 rounded-xl skeleton"></div>
+                        <div className="h-6 rounded-xl skeleton"></div>
                     </div>
                     </MenuItem>
                 </div>
@@ -83,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({ service }) => {
                             {({ focus }) => (
                                 <button
                                     onClick={() => handleModelChange(model.modelName, model.id)}
-                                    className={`rounded-md px-4 w-full py-2 text-sm text-left ${focus? 'bg-neutral-400 dark:bg-neutral-800' : ''}`}
+                                    className={`rounded-xl px-4 w-full py-2 text-sm text-left ${focus? 'bg-neutral-400 dark:bg-neutral-800' : ''}`}
                                 >
                                     {model.modelName}
                                 </button>

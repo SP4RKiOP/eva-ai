@@ -42,10 +42,10 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
         <div className="hidden md:block left-0 right-0 py-2">
             <div className="sticky top-0 mb-1.5 flex items-center justify-between z-10 h-14 p-2 font-semibold bg-token-main-surface-primary">
                 <div className="absolute left-1/2 -translate-x-1/2"></div>
-                <div className="flex items-center gap-2 hover-light-dark dark:hover:bg-neutral-900 rounded-lg">
+                <div className="flex items-center gap-2 hover-light-dark dark:hover:bg-neutral-900 rounded-xl">
                     <Menu as="div" className="relative inline-block text-left">
                         <div>
-                            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md  px-3 py-2 text-sm font-semibold">
+                            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-xl  px-3 py-2 text-sm font-semibold">
                                 {selectedModel || 'Default Model'}
                                 <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
                             </MenuButton>
@@ -58,14 +58,14 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
                             leaveFrom="transform opacity-100 scale-100"
                             leaveTo="transform opacity-0 scale-95"
                         >
-                            <MenuItems className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-md  shadow-lg ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-neutral-900">
+                            <MenuItems className="absolute left-0 z-10 mt-2 w-48 origin-top-right rounded-2xl  shadow-xl ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-[#171717]">
                             {models.length <= 0 ? (
                                 <div className="py-1 px-1">
                                     <MenuItem>
                                     <div className="animate-pulse">
-                                        <div className="mb-1 h-6 rounded skeleton"></div>
-                                        <div className="mb-1 h-6 rounded skeleton"></div>
-                                        <div className="h-6 rounded skeleton"></div>
+                                        <div className="mb-1 h-6 rounded-xl skeleton"></div>
+                                        <div className="mb-1 h-6 rounded-xl skeleton"></div>
+                                        <div className="h-6 rounded-xl skeleton"></div>
                                     </div>
                                     </MenuItem>
                                 </div>
@@ -76,7 +76,7 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
                                             {({ focus }) => (
                                                 <button
                                                     onClick={() => handleModelChange(model.modelName, model.id)}
-                                                    className={`rounded-md px-4 w-full py-2 text-sm text-left ${focus? 'bg-neutral-400 dark:bg-neutral-800' : ''}`}
+                                                    className={`rounded-xl px-4 w-full py-2 text-sm text-left ${focus? 'bg-neutral-400 dark:bg-neutral-800' : ''}`}
                                                 >
                                                     {model.modelName}
                                                 </button>
