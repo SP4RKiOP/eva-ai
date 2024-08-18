@@ -6,16 +6,18 @@ import Header from './header-mobile';
 import ModelSelect from './header-desktop';
 import Greet from './greet';
 import { VisibilityProvider } from './VisibilityContext';
-import {useRouter} from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { ChatService } from '@/lib/service';
+import { useSession } from "next-auth/react";
+import { NextResponse } from "next/server";
+import { getServerSession } from 'next-auth';
+
 interface ChatProps {
     chatId?: string;
     fName: string;
     lName: string;
     uMail: string;
     uImg: string;
-    rtr: ReturnType<typeof useRouter>;
     chatService: ChatService;
 }
 
@@ -26,7 +28,8 @@ interface Message {
 }
 
 
-const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uImg, rtr}) => {
+const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uImg}) => {
+    const { data: session, status } = useSession();
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
@@ -103,6 +106,9 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     };
 
     useEffect(() => {
+      if((session as any)?.partner){
+        sessionStorage.setItem('partner', (session as any)?.partner);
+      }
       if(chatId){setCurrentChatId(chatId);}
     // Fetch latest chat history
     if (currentChatId) {
@@ -128,11 +134,13 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           .catch((error) => console.error("Error fetching chat history:", error));
       }
     }
-    if((sessionStorage.getItem('userId')==null || sessionStorage.getItem('userId')?.length==0) && uMail.length>0) {
+    if((sessionStorage.getItem('userId')==null || sessionStorage.getItem('userId')?.length==0) && status=='authenticated') {
+      
       const userData = {
         emailId: uMail,
         firstName: fName,
         lastName: lName,
+        partner: (session as any)?.partner || sessionStorage.getItem('partner'),
       };
       process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
       // Send userData to your API endpoint
@@ -150,6 +158,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           return response.text();
         })
         .then(async (data) => {
+          console.log("User ID on chat:", data);
           if(chatService.HubConnectionState.Connected && !chatService.roomJoined$.value) {
             chatService.joinChat(data as string);
           }

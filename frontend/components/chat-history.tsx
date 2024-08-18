@@ -30,7 +30,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
     localStorage.removeItem('chatTitles');
     sessionStorage.removeItem('models');
     sessionStorage.removeItem('userId');
-    // Sign out using NextAuth
     await signOut({ callbackUrl: '/login' }); // Redirects to the login page after logout
   };
 

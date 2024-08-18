@@ -28,7 +28,7 @@ namespace genai.backend.api.Controllers
 
             try
             {
-                string uId = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName);
+                string uId = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName, request.Partner);
                 return Ok(uId);
             }
             catch (Exception ex) {
@@ -61,6 +61,7 @@ namespace genai.backend.api.Controllers
         public string EmailId { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string Partner { get; set; }
     }
     public class UserStreamRequest
     {

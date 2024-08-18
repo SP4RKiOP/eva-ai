@@ -18,11 +18,11 @@ namespace genai.backend.api.Services
             _dbContext = dbContext;
             _responseStream = responseStream;
         }
-        public async Task<string> GetCreateUser(string emailId, string? firstName, string? lastName)
+        public async Task<string> GetCreateUser(string emailId, string? firstName, string? lastName, string partner)
         {
             // Attempt to fetch the user and their subscribed models in a single query
             var user = await _dbContext.Users
-                .FirstOrDefaultAsync(u => u.Email == emailId);
+                .FirstOrDefaultAsync(u => u.Email == emailId && u.Partner == partner);
 
             if (user == null)
             {
@@ -32,7 +32,8 @@ namespace genai.backend.api.Services
                     UserId = Guid.NewGuid().ToString(),
                     FirstName = firstName,
                     LastName = lastName,
-                    Email = emailId
+                    Email = emailId,
+                    Partner = partner
                 };
                 // Create a default entry for UserSubscriptions
                 var defaultSubscription = new UserSubscription

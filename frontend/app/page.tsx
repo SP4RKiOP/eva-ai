@@ -25,7 +25,7 @@ export default function HomePage() {
 
   return (
     <div>
-      <Chat fName={fstNam} lName={lstNam} uMail={userMail} uImg={userImage} rtr={router} chatService={chatService}/>
+      <Chat fName={fstNam} lName={lstNam} uMail={userMail} uImg={userImage} chatService={chatService}/>
     </div>
   );
 }
