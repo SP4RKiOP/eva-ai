@@ -17,6 +17,7 @@ interface IndexPageProps {
    const router = useRouter();
    // Create an instance of ChatService
    const chatService = new ChatService();
+   
    // Redirect if session is null
    if (status === 'unauthenticated' || !session) {
       router.push('/login');

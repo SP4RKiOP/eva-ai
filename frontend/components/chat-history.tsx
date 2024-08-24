@@ -25,11 +25,12 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
   const { chatHistoryVisible } = useVisibility();
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
+  const [isFetchingChatTitles, setIsFetchingChatTitles] = useState(true);
 
   const handleLogout = async () => {
-    localStorage.removeItem('chatTitles');
-    sessionStorage.removeItem('models');
-    sessionStorage.removeItem('userId');
+    window.localStorage.removeItem('chatTitles');
+    window.sessionStorage.removeItem('models');
+    window.sessionStorage.removeItem('userId');
     await signOut({ callbackUrl: '/login' }); // Redirects to the login page after logout
   };
 
@@ -45,7 +46,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
 
   useEffect(() => {
     const fetchAndStoreChatTitles = async () => {
-      const cachedTitles = localStorage.getItem('chatTitles');
+      setIsFetchingChatTitles(true);
+      const cachedTitles = window.localStorage.getItem('chatTitles');
       let existingTitles: ChatTitle[] = [];
 
       if (cachedTitles) {
@@ -58,6 +60,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
       }
 
       setChatTitles(existingTitles);
+      setIsFetchingChatTitles(false);
 
       // Subscribe to the service for updates
       const subscription = service.chatTitles$.subscribe((ttls) => {
@@ -86,11 +89,13 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
           uniqueTitles.sort((a: ChatTitle, b: ChatTitle) => b.CreatedOn.getTime() - a.CreatedOn.getTime());
 
           setChatTitles(uniqueTitles);
+          setIsFetchingChatTitles(false);
           // Update the local storage with the merged and sorted data
-          localStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map((title) => JSON.stringify(title))));
+          window.localStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map((title) => JSON.stringify(title))));
         } else {
-          if (!localStorage.getItem('chatTitles')) {
+          if (!window.localStorage.getItem('chatTitles')) {
             setChatTitles([]);
+            setIsFetchingChatTitles(false);
           }
         }
       });
@@ -129,14 +134,14 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
             }}
           >
             <div className="h-7 w-7">
-              <div className="gizmo-shadow-stroke relative flex h-full items-center justify-center rounded-full text-gray-950">
+              <div className="relative flex h-full items-center justify-center rounded-full text-gray-950">
                 <IconChatIQ className="mx-auto h-10 w-10" />
               </div>
             </div>
             <span className="group-hover:text-gray-950 dark:group-hover:text-gray-200">New Chat</span>
           </button>
           </div>
-          {chatTitles.length === 0 ? (
+          {isFetchingChatTitles ? (
             <div className="flex flex-col gap-2 pt-6 pb-4 text-sm animate-pulse">
               <div className="h-6 rounded mb-2 skeleton"></div>
               <div className="h-6 rounded mb-2 skeleton"></div>
@@ -145,6 +150,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
               <div className="h-6 rounded mb-2 skeleton"></div>
               <div className="h-6 rounded mb-2 skeleton"></div>
             </div>
+          ) : chatTitles.length === 0 ? (
+            <div className={`grow gap-2 pt-8 pb-4 text-sm text-center`}>No Chats Found.<div className='pt-2'>Go Ahead with your first question</div></div>
           ) : (
             <div className="grow flex-col gap-2 pt-4 pb-4 text-sm overflow-y-scroll">
               {chatTitles.map((chatTitle) => (

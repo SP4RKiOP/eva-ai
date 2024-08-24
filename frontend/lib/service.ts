@@ -14,7 +14,7 @@ export class ChatService {
     public availableModels$ = new BehaviorSubject<any>([]);
     public availableModels: any[]=[];
     public selectedModelId$ = new BehaviorSubject<number>(1);
-    public HubConnectionState = signalR.HubConnectionState;
+    public HubConnectionState$ = new BehaviorSubject<string>('');
     public roomJoined$ = new BehaviorSubject<boolean>(false);
 
     constructor() {
@@ -51,7 +51,7 @@ export class ChatService {
       this.availableModels$.next(this.availableModels);
     });
     this.connection.on("ClearChatTitles", () => {
-      localStorage.removeItem("chatTitles");
+      window.localStorage.removeItem("chatTitles");
       this.chatTitles = [];
       this.chatTitles$.next(this.chatTitles);
     });
@@ -63,10 +63,11 @@ export class ChatService {
             await this.connection.start()
             .then(() => {
                 console.log("SignalR Connected.");
-                if(typeof window !== 'undefined' &&sessionStorage.getItem('userId')){
-                  this.connection.invoke("JoinRoom", { userId: sessionStorage.getItem('userId') });
+                this.HubConnectionState$.next("Connected"); // Set the HubConnectionState to "Connected";
+                if(typeof window !== 'undefined' && window.sessionStorage.getItem('userId')){
+                  this.connection.invoke("JoinRoom", { userId: window.sessionStorage.getItem('userId') });
                   this.roomJoined$.next(true);
-                  console.log("User joined successfully.", sessionStorage.getItem('userId'));
+                  console.log("User joined successfully.", window.sessionStorage.getItem('userId'));
                 }
             });
         } catch (err) {

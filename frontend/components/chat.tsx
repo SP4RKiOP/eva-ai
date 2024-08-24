@@ -6,12 +6,12 @@ import Header from './header-mobile';
 import ModelSelect from './header-desktop';
 import Greet from './greet';
 import { VisibilityProvider } from './VisibilityContext';
-import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import { ChatService } from '@/lib/service';
 import { useSession } from "next-auth/react";
-import { NextResponse } from "next/server";
-import { getServerSession } from 'next-auth';
-
+import { CodeBlock } from './ui/codeblock';
+import { MemoizedReactMarkdown } from './markdown';
 interface ChatProps {
     chatId?: string;
     fName: string;
@@ -32,7 +32,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     const { data: session, status } = useSession();
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
-    const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
+    const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
     const handleMessageSubmit = async (text: string) => {
         try {
             // Add user's input text as a message in the current chat
@@ -94,7 +94,6 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
 
     );
     const handleNewChat = () => {
-      chatId = undefined;
       setMessages([]);
       window.history.pushState({}, '', `/`);
       setCurrentChatId(undefined);
@@ -107,9 +106,8 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
 
     useEffect(() => {
       if((session as any)?.partner){
-        sessionStorage.setItem('partner', (session as any)?.partner);
+        window.sessionStorage.setItem('partner', (session as any)?.partner);
       }
-      if(chatId){setCurrentChatId(chatId);}
     // Fetch latest chat history
     if (currentChatId) {
       if(messages.length==0) {
@@ -134,13 +132,13 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           .catch((error) => console.error("Error fetching chat history:", error));
       }
     }
-    if((sessionStorage.getItem('userId')==null || sessionStorage.getItem('userId')?.length==0) && status=='authenticated') {
+    if((window.sessionStorage.getItem('userId')==null || window.sessionStorage.getItem('userId')?.length==0) && status=='authenticated') {
       
       const userData = {
         emailId: uMail,
         firstName: fName,
         lastName: lName,
-        partner: (session as any)?.partner || sessionStorage.getItem('partner'),
+        partner: (session as any)?.partner || window.sessionStorage.getItem('partner'),
       };
       process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
       // Send userData to your API endpoint
@@ -159,10 +157,10 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         })
         .then(async (data) => {
           console.log("User ID on chat:", data);
-          if(chatService.HubConnectionState.Connected && !chatService.roomJoined$.value) {
+          if(chatService.HubConnectionState$.value=="Connected" && !chatService.roomJoined$.value) {
             chatService.joinChat(data as string);
           }
-          sessionStorage.setItem('userId', data as string);
+          window.sessionStorage.setItem('userId', data as string);
           fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/StreamUserData`, {
             method: "POST",
             headers: {
@@ -180,18 +178,17 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           console.error("Error:", error);
         });
     }else {
-      setUserId(sessionStorage.getItem('userId') as string);
+      setUserId(window.sessionStorage.getItem('userId') as string);
     }
     if(userId){
-      if(chatService.HubConnectionState.Connected && !chatService.roomJoined$.value) {
+      if(chatService.HubConnectionState$.value=="Connected" && !chatService.roomJoined$.value) {
         chatService.joinChat(userId);
       }
     }
 
-    chatService.msgs$.subscribe((msgs) => {
+    const subscription = chatService.msgs$.subscribe((msgs) => {
       if(currentChatId!==undefined) {
         if (msgs && msgs[currentChatId]) {
-            // console.log('msgs:', msgs[currentChatId].join(''));
             const newMessage: Message = {
               role: "assistant", // Assuming all messages from Redis are from assistant
               text: msgs[currentChatId].join(''),
@@ -231,6 +228,9 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           }
       }
     });
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [userId, currentChatId]);
 
     
@@ -272,7 +272,42 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                               {message.isPlaceholder ? (
                                                                   <SkeletonLoader />
                                                               ) : (
-                                                                  <div className='prose prose-neutral dark:prose-invert'><ReactMarkdown>{message.text}</ReactMarkdown></div>
+                                                                  <div className=''><MemoizedReactMarkdown
+                                                                  className='prose prose-neutral break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0'
+                                                                  remarkPlugins={[remarkGfm, remarkMath]}
+                                                                  components={{
+                                                                    code({ node, inline, className, children, ...props }) {
+                                                                      if (children.length) {
+                                                                        if (children[0] == '▍') {
+                                                                          return (
+                                                                            <span className="mt-1 cursor-default animate-pulse">▍</span>
+                                                                          )
+                                                                        }
+                                                        
+                                                                        children[0] = (children[0] as string).replace('`▍`', '▍')
+                                                                      }
+                                                                        const match = /language-(\w+)/.exec(className || '');
+                                                                        if (inline) {
+                                                                          return (
+                                                                            <code className={className} {...props}>
+                                                                              {children}
+                                                                            </code>
+                                                                          )
+                                                                        }
+                                                                        return match ? (
+                                                                          <CodeBlock
+                                                                          key={Math.random()}
+                                                                          language={(match && match[1]) || ''}
+                                                                          value={String(children).replace(/\n$/, '')}
+                                                                          {...props}
+                                                                        />
+                                                                        ) : (
+                                                                            <code className={className} {...props}>
+                                                                                {children}
+                                                                            </code>
+                                                                        )
+                                                                    },
+                                                                }}>{message.text}</MemoizedReactMarkdown></div>
                                                               )}
                                                             </div>
                                                           </div>

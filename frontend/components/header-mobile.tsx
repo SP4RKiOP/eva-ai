@@ -20,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ service }) => {
 
   useEffect(() => {
     // Load models from session storage if available
-    const savedModels = sessionStorage.getItem('models');
+    const savedModels = window.sessionStorage.getItem('models');
     if (savedModels) {
     setModels(JSON.parse(savedModels));
     }
@@ -28,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ service }) => {
     const subscription = service.availableModels$.subscribe(models => {
       if(models && models.length > 0) {
         setModels(models);
-        sessionStorage.setItem('models', JSON.stringify(models));
+        window.sessionStorage.setItem('models', JSON.stringify(models));
       }
     });
 
