@@ -3,6 +3,7 @@ import { authOptions } from "./api/auth/[...nextauth]/auth";
 import Provider from "./client-provider";
 import "./globals.css";
 import Chat from "@/components/chat";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata = {
   title: "ChatIQ",
@@ -21,9 +22,8 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <Provider session={session}>
-          <main className="h-screen">
-            {children}
-          </main>
+          <main className="h-screen">{children}</main>
+          <Toaster />
           </Provider>
       </body>
     </html>

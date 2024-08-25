@@ -4,7 +4,8 @@ import { IconChatIQ } from '@/components/ui/icons';
 import { ChatService } from '@/lib/service';
 import { Menu, MenuButton, MenuItem, MenuItems, Transition, Portal } from '@headlessui/react';
 import { signOut } from 'next-auth/react';
-
+import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button"
 interface ChatTitle {
   ChatId: string;
   ChatTitle: string;
@@ -26,6 +27,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
   const [isFetchingChatTitles, setIsFetchingChatTitles] = useState(true);
+  const { toast } = useToast()
 
   const handleLogout = async () => {
     window.localStorage.removeItem('chatTitles');
@@ -188,7 +190,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
                             <MenuItem>
                               {({ active }) => (
                                 <button
-                                  onClick={() => handleRename(chatTitle.ChatId)}
+                                  onClick={() => {toast({
+                                    description: "Your message has been sent.",
+                                  })}}
                                   className={`block w-full text-left px-4 py-2 text-sm rounded-xl ${active ? 'bg-neutral-400 dark:bg-neutral-600' : ''}`}
                                 >
                                   Rename
@@ -204,6 +208,18 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
                                   Delete
                                 </button>
                               )}
+                            </MenuItem>
+                            <MenuItem>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                toast({
+                                  description: "Your message has been sent.",
+                                })
+                              }}
+                            >
+                              Show Toast
+                            </Button>
                             </MenuItem>
                           </div>
                         </MenuItems>
