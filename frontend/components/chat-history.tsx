@@ -6,6 +6,27 @@ import { Menu, MenuButton, MenuItem, MenuItems, Transition, Portal } from '@head
 import { signOut } from 'next-auth/react';
 import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 interface ChatTitle {
   ChatId: string;
   ChatTitle: string;
@@ -28,7 +49,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
   const [isFetchingChatTitles, setIsFetchingChatTitles] = useState(true);
   const { toast } = useToast()
-
+  const [title, setTitle] = useState('');
   const handleLogout = async () => {
     window.localStorage.removeItem('chatTitles');
     window.sessionStorage.removeItem('models');
@@ -36,11 +57,10 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
     await signOut({ callbackUrl: '/login' }); // Redirects to the login page after logout
   };
 
-  const handleRename = (chatId: string) => {
+  const handleRename = (chatId: string, newTitle: string) => {
     // Logic to rename the chat
-    console.log('Rename chat:', chatId);
+    console.log('Rename chat:', chatId, 'to', newTitle);
   };
-
   const handleDelete = (chatId: string) => {
     // Logic to delete the chat
     console.log('Delete chat:', chatId);
@@ -159,72 +179,61 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
               {chatTitles.map((chatTitle) => (
                 <div key={chatTitle.ChatId} className={`relative pt-1 pb-1 overflow-x-hidden whitespace-nowrap group`}>
                   <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark ${chatTitle.ChatId == chatId ? 'skeleton' : ''}`}>
-                    {/* <a onClick={() => onOldChatClick(chatTitle.ChatId)}  className="group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip">
-                      {chatTitle.ChatTitle}
-                    </a> */}
                     <button
                       className={`group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip`}
                       onClick={() => onOldChatClick(chatTitle.ChatId)}
                     >{chatTitle.ChatTitle}</button>
                   </div>
                   {/* Dropdown menu for each chat title */}
-                  <div className={`absolute right-9 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 ${chatTitle.ChatId == chatId ? 'opacity-100' : ''} transition-opacity `}>
-                    <Menu as="div" className=" fixed text-left z-50 ">
-                      <div >
-                        <MenuButton className="backdrop-blur-sm inline-flex justify-center w-full p-2 text-sm font-medium text-gray-800 dark:text-white rounded-r-lg focus:outline-none">
-                          <svg className="w-5 h-4 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 3">
-                            <path d="M2 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6.041 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM14 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
-                          </svg>
-                        </MenuButton>
-                      </div>
-                      <Transition
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
-                      >
-                        <MenuItems className="absolute mt-1 max-md:-ml-20 w-30 md:w-36 origin-top-right rounded-2xl shadow-lg bg-neutral-300 dark:bg-[#212121] ring-1 ring-black ring-opacity-5 focus:outline-none">
-                          <div className="py-1 px-1">
-                            <MenuItem>
-                              {({ active }) => (
-                                <button
-                                  onClick={() => {toast({
-                                    description: "Your message has been sent.",
+                  <div className={`absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 ${chatTitle.ChatId == chatId ? 'opacity-100' : ''} transition-opacity `}>
+                    <Dialog>
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger className="backdrop-blur-sm inline-flex justify-center w-full p-2 text-sm font-medium text-gray-800 dark:text-white rounded-r-lg focus:outline-none">
+                            <svg className="w-5 h-4 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 3">
+                              <path d="M2 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6.041 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM14 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
+                            </svg>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className='rounded-2xl bg-neutral-300 dark:bg-[#212121]'>
+                          <DialogTrigger asChild className='block w-full text-left text-sm '>
+                            <DropdownMenuItem className='rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600'>Rename</DropdownMenuItem>
+                          </DialogTrigger>
+                          <DropdownMenuItem onClick={() => {handleDelete(chatTitle.ChatId), toast({
+                                    description: "Chat Deleted Successfully",
                                   })}}
-                                  className={`block w-full text-left px-4 py-2 text-sm rounded-xl ${active ? 'bg-neutral-400 dark:bg-neutral-600' : ''}`}
-                                >
-                                  Rename
-                                </button>
-                              )}
-                            </MenuItem>
-                            <MenuItem>
-                              {({ active }) => (
-                                <button
-                                  onClick={() => handleDelete(chatTitle.ChatId)}
-                                  className={`block w-full text-left px-4 py-2 text-sm rounded-xl ${active ? 'bg-neutral-400 dark:bg-neutral-600' : ''}`}
-                                >
-                                  Delete
-                                </button>
-                              )}
-                            </MenuItem>
-                            <MenuItem>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                toast({
-                                  description: "Your message has been sent.",
-                                })
-                              }}
-                            >
-                              Show Toast
-                            </Button>
-                            </MenuItem>
+                                  className='rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600'>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <DialogContent className="max-w-[400px] md:max-w-[425px]">
+                        <DialogHeader className='max-md:text-left'>
+                          <DialogTitle>Edit Chat Title</DialogTitle>
+                          <DialogDescription>
+                            Click save when you're done.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4 max-md:justify-start">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                              Title
+                            </Label>
+                            <Input
+                              id="name"
+                              defaultValue={chatTitle.ChatTitle}
+                              onChange={(e) => setTitle(e.target.value)} // Update state on input change
+                              className="col-span-3"
+                            />
                           </div>
-                        </MenuItems>
-                      </Transition>
-                    </Menu>
+                        </div>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button type="button" className="w-fit ml-auto" onClick={() => {handleRename(chatTitle.ChatId, title)}}>
+                              Save changes
+                            </Button>
+                          </DialogClose>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               ))}
@@ -269,31 +278,25 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
               >
-                <MenuItems className="absolute bottom-full right-0 mt-2 w-48 origin-bottom-right rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-[#212121]">
+                <MenuItems className="absolute bottom-full right-0 mt-2 w-36 origin-bottom-right rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 bg-neutral-300 dark:bg-[#212121]">
                   <div className="py-1 px-1">
                     <MenuItem>
-                      {({ active }) => (
-                        <button className={`block w-full text-left px-4 py-2 text-sm rounded-xl ${active ? 'bg-neutral-400 dark:bg-neutral-600' : ''}`}>
-                          Profile
-                        </button>
-                      )}
+                      <button className={`block w-full text-left px-4 py-2 text-sm rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600`}>
+                        Profile
+                      </button>
                     </MenuItem>
                     <MenuItem>
-                      {({ active }) => (
-                        <button className={`block w-full text-left px-4 py-2 text-sm rounded-xl ${active ? 'bg-neutral-400 dark:bg-neutral-600' : ''}`}>
-                          Settings
-                        </button>
-                      )}
+                      <button className={`block w-full text-left px-4 py-2 text-sm rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600`}>
+                        Settings
+                      </button>
                     </MenuItem>
                     <MenuItem>
-                      {({ active }) => (
-                        <button
-                          onClick={handleLogout}
-                          className={`block w-full text-left px-4 py-2 text-sm rounded-xl ${active ? 'bg-neutral-400 dark:bg-neutral-600' : ''}`}
-                        >
-                          Logout
-                        </button>
-                      )}
+                      <button
+                        onClick={handleLogout}
+                        className={`block w-full text-left px-4 py-2 text-sm rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600`}
+                      >
+                        Logout
+                      </button>
                     </MenuItem>
                   </div>
                 </MenuItems>
