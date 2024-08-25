@@ -1,5 +1,7 @@
 ﻿using genai.backend.api.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace genai.backend.api.Controllers
 {
@@ -15,7 +17,6 @@ namespace genai.backend.api.Controllers
         }
         public class PostRequest
         {
-            public required string userId { get; set; }
             public required int modelId { get; set; }
             public required string userInput { get; set; }
             public string? chatId { get; set; } // Nullable
@@ -26,10 +27,21 @@ namespace genai.backend.api.Controllers
         {
             try
             {
+                var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
+
+                var token = authHeader.Substring("Bearer ".Length).Trim();
+
+                // Decode the JWT token to get the userId
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+
+                var userId = userIdClaim.Value;
                 // Check if the 'question' property exists in the request body
                 if (requestBody != null && !string.IsNullOrEmpty(requestBody.userInput))
                 {
-                    var ChatId = await _semanticService.semanticChatAsync(requestBody.userId, requestBody.modelId, requestBody.userInput, requestBody.chatId);
+                    var ChatId = await _semanticService.semanticChatAsync(userId, requestBody.modelId, requestBody.userInput, requestBody.chatId);
 
                     if (ChatId != null)
                     {
@@ -57,12 +69,6 @@ namespace genai.backend.api.Controllers
         }
 
 
-        /*[HttpGet("chat-titles/{userId}")]
-        public async Task<IActionResult> GetChatTitlesForUser(string userId)
-        {
-            var chatTitlesJson = await _semanticService.GetChatTitlesForUser(userId);
-            return Ok(chatTitlesJson);
-        }*/
         [HttpGet("convhistory/{chatId}")]
         public async Task<IActionResult> GetConvHistory(string chatId)
         {

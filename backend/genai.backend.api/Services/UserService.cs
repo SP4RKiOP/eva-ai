@@ -1,8 +1,13 @@
 ﻿using genai.backend.api.Data;
 using genai.backend.api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace genai.backend.api.Services
@@ -18,7 +23,7 @@ namespace genai.backend.api.Services
             _dbContext = dbContext;
             _responseStream = responseStream;
         }
-        public async Task<string> GetCreateUser(string emailId, string? firstName, string? lastName, string partner)
+        public async Task<Object> GetCreateUser(string emailId, string? firstName, string? lastName, string partner)
         {
             // Attempt to fetch the user and their subscribed models in a single query
             var user = await _dbContext.Users
@@ -47,8 +52,22 @@ namespace genai.backend.api.Services
                 _dbContext.UserSubscriptions.Add(defaultSubscription);
                 await _dbContext.SaveChangesAsync();
             }
+            // Generate JWT token
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]); // Replace with your secret key
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId)
+                }),
+                Expires = DateTime.UtcNow.AddDays(1), // Token expiry time
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
 
-            return user.UserId; // Return the UserId
+            return new { UserId = user.UserId, Token = tokenString };
         }
         public async Task GetChatTitlesForUser(string userId)
         {
@@ -81,7 +100,36 @@ namespace genai.backend.api.Services
                 await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(new { ChatId = userId, ChatTitle = "No Chat Found", CreatedOn = DateTime.Now }));
             }
         }
-        public async Task GetAvailableModels(string userId)
+        public async Task<bool> RenameChatTitleAsync(string chatId, string newTitle)
+        {
+            var chat = await _dbContext.ChatHistory
+                .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
+
+            if (chat == null)
+            {
+                return false; // Chat not found
+            }
+
+            chat.ChatTitle = newTitle;
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteChatTitleAsync(string chatId)
+        {
+            var chat = await _dbContext.ChatHistory
+                .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
+
+            if (chat == null)
+            {
+                return false; // Chat not found
+            }
+
+            _dbContext.ChatHistory.Remove(chat);
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+        public async Task GetSubscribedModels(string userId)
         {
             var models = await _dbContext.UserSubscriptions
             .Include(u => u.AvailableModel)

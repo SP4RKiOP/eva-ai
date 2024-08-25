@@ -1,5 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using genai.backend.api.Services;
+using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace genai.backend.api.Controllers
 {
@@ -19,6 +23,7 @@ namespace genai.backend.api.Controllers
         }
 
         [HttpPost("UserId")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetOrCreateUser([FromBody] CreateUserRequest request)
         {
             if (request == null || string.IsNullOrEmpty(request.EmailId))
@@ -28,25 +33,32 @@ namespace genai.backend.api.Controllers
 
             try
             {
-                string uId = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName, request.Partner);
-                return Ok(uId);
+                dynamic uId_token = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName, request.Partner);
+                HttpContext.Response.Headers.Add("Authorization", uId_token.Token);
+                return Ok(uId_token.UserId);
             }
             catch (Exception ex) {
                 return BadRequest(ex.Message);
             }
         }
-        [HttpPost("StreamUserData")]
-        public async Task<IActionResult> StreamUserData([FromBody] UserStreamRequest request)
+        [HttpGet("StreamUserData")]
+        public async Task<IActionResult> StreamUserData()
         {
-            if (request == null || string.IsNullOrEmpty(request.UserId))
-            {
-                return BadRequest("UserId is required.");
-            }
-
             try
             {
-                await _userService.GetChatTitlesForUser(request.UserId);
-                await _userService.GetAvailableModels(userId: request.UserId);
+                var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
+
+                var token = authHeader.Substring("Bearer ".Length).Trim();
+
+                // Decode the JWT token to get the userId
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+
+                var userId = userIdClaim.Value;
+                await _userService.GetChatTitlesForUser(userId);
+                await _userService.GetSubscribedModels(userId: userId);
                 return Ok();
             }
             catch (Exception ex)
@@ -54,17 +66,39 @@ namespace genai.backend.api.Controllers
                 return BadRequest(ex.Message);
             }
         }
-    }
 
-    public class CreateUserRequest
+        [HttpPatch("chat/{chatId}")]
+        public async Task<IActionResult> RenameOrDeleteChatTitle(string chatId, [FromQuery] string? title)
+        {
+            if (string.IsNullOrEmpty(title))
+            {
+                // If the title is null or empty, delete the chat title
+                var result = await _userService.DeleteChatTitleAsync(chatId);
+                if (result)
+                {
+                    return NoContent(); // Successfully deleted
+                }
+                return NotFound("Chat title not found.");
+            }
+            else
+            {
+                // If the title is provided, rename the chat title
+                var result = await _userService.RenameChatTitleAsync(chatId, title);
+                if (result)
+                {
+                    return NoContent(); // Successfully renamed
+                }
+                return NotFound("Chat title not found.");
+            }
+        }
+
+        public class CreateUserRequest
     {
         public string EmailId { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string Partner { get; set; }
     }
-    public class UserStreamRequest
-    {
-        public string UserId { get; set; }
+
     }
 }

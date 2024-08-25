@@ -34,36 +34,86 @@ interface ChatTitle {
 }
 
 interface ChatHistoryProps {
+  uMail: string;
   firstName: string;
   lastName: string;
   userImage: string;
   service: ChatService;
+  session: any;
   chatId: string | undefined;
   onNewChatClick: () => void;
   onOldChatClick: (iD?: string) => void;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName, userImage, chatId, onNewChatClick, onOldChatClick }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, lastName, userImage, session, chatId, onNewChatClick, onOldChatClick }) => {
   const { chatHistoryVisible } = useVisibility();
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
   const [isFetchingChatTitles, setIsFetchingChatTitles] = useState(true);
   const { toast } = useToast()
   const [title, setTitle] = useState("");
+  const getuId_token = async () => {
+    const userData = {
+      emailId: uMail,
+      firstName: firstName,
+      lastName: lastName,
+      partner: (session as any)?.partner || window.sessionStorage.getItem('partner'),
+    };
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to send user data to the API");
+          }
+          window.localStorage.setItem('back_auth', response.headers.get('authorization') as string);
+          // add back_auth to session user data
+          return response.text();
+        })
+  };
   const handleLogout = async () => {
     window.localStorage.removeItem('chatTitles');
     window.sessionStorage.removeItem('models');
     window.sessionStorage.removeItem('userId');
+    window.sessionStorage.removeItem('partner');
+    window.localStorage.removeItem('back_auth');
     await signOut({ callbackUrl: '/login' }); // Redirects to the login page after logout
   };
 
   const handleRename = (chatId: string, newTitle: string) => {
-    // Logic to rename the chat
-    console.log('Rename chat:', chatId, 'to', newTitle);
+    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/chat/${chatId}/?title=${newTitle}`, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+      },
+    }).then((res) => {
+      if(res.status === 401) {
+        getuId_token();
+      }else if (res.status === 204) {
+        toast({
+          description: "Chat title updated successfully",
+        })
+    }
+      })
   };
   const handleDelete = (chatId: string) => {
-    // Logic to delete the chat
-    console.log('Delete chat:', chatId);
+    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/chat/${chatId}`, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+      },
+    }).then((res) => {
+      if(res.status === 401) {
+        getuId_token();
+      }else if (res.status === 204) {
+        toast({
+          description: "Chat title updated successfully",
+        })
+    }})
   };
 
   useEffect(() => {
@@ -197,9 +247,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
                           <DialogTrigger asChild className="block w-full text-left text-sm">
                             <DropdownMenuItem className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">Rename</DropdownMenuItem>
                           </DialogTrigger>
-                          <DropdownMenuItem onClick={() => {handleDelete(chatTitle.ChatId), toast({
-                                    description: "Chat Deleted Successfully",
-                                  })}}
+                          <DropdownMenuItem onClick={() => {handleDelete(chatTitle.ChatId)}}
                                   className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">
                             Delete
                           </DropdownMenuItem>

@@ -55,6 +55,14 @@ namespace genai.backend.api.Services
         {
             try
             {
+                var isModelSubscribed = await _dbContext.UserSubscriptions
+                .AnyAsync(u => u.UserId == userId && u.ModelId == modelId);
+                if (!isModelSubscribed)
+                {
+                   //back to default model
+                    modelId = _configuration.GetValue<int>("DefaultModelId");
+                }
+                
                 var GptModel = await _dbContext.AvailableModels
                 .Where(m => m.DeploymentId == modelId)
                 .Select(m => new

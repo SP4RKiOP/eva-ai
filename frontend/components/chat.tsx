@@ -33,6 +33,29 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
+    const getuId_token = async () => {
+      const userData = {
+        emailId: uMail,
+        firstName: fName,
+        lastName: lName,
+        partner: (session as any)?.partner || window.sessionStorage.getItem('partner'),
+      };
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to send user data to the API");
+            }
+            window.localStorage.setItem('back_auth', response.headers.get('authorization') as string);
+            // add back_auth to session user data
+            return response.text();
+          })
+    };
     const handleMessageSubmit = async (text: string) => {
         try {
             // Add user's input text as a message in the current chat
@@ -51,7 +74,8 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
                 },
                 body: JSON.stringify({
                     userId: userId,
@@ -60,8 +84,8 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                     chatId: currentChatId
                 })
             });
-            if (!response.ok) {
-                throw new Error('Failed to fetch response from server');
+            if (response.status == 401 || !response.ok) {
+                getuId_token();
             }
             const newChatId = await response.text();
             if(newChatId!=null && newChatId.length!= 0) {
@@ -111,10 +135,15 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     // Fetch latest chat history
     if (currentChatId) {
       if(messages.length==0) {
-        fetch(
-          `${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/convhistory/${currentChatId}`
+        fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/convhistory/${currentChatId}`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+          },
+        }
         )
-          .then((response) => response.json())
+          .then((response) => 
+            response.status == 401 ? getuId_token() : response.json())
           .then((data) => {
             if (data && data.length > 0) {
               const newMessages: Message[] = data
@@ -140,7 +169,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         lastName: lName,
         partner: (session as any)?.partner || window.sessionStorage.getItem('partner'),
       };
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+      // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
       // Send userData to your API endpoint
       fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
         method: "POST",
@@ -153,6 +182,8 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           if (!response.ok) {
             throw new Error("Failed to send user data to the API");
           }
+          window.localStorage.setItem('back_auth', response.headers.get('authorization') as string);
+          // add back_auth to session user data
           return response.text();
         })
         .then(async (data) => {
@@ -162,11 +193,10 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           }
           window.sessionStorage.setItem('userId', data as string);
           fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/StreamUserData`, {
-            method: "POST",
+            method: "GET",
             headers: {
-              "Content-Type": "application/json",
+              "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
             },
-            body: JSON.stringify({userId: data}),
           })
           .then( (response) => {
             if (response.ok) {
@@ -238,7 +268,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
-                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} chatId={currentChatId} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
+                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} uMail={uMail} session={session} chatId={currentChatId} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
                 <div className="relative flex-1 flex-col overflow-hidden">
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
