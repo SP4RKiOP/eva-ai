@@ -97,6 +97,12 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
         toast({
           description: "Chat title updated successfully",
         })
+        chatTitles.map((title) => {
+          if (title.ChatId === chatId) {
+            title.ChatTitle = newTitle;
+          }
+        })
+        setChatTitles([...chatTitles]);
     }
       })
   };
@@ -113,6 +119,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
         toast({
           description: "Chat title updated successfully",
         })
+        setChatTitles(chatTitles.filter((title) => title.ChatId !== chatId));
     }})
   };
 
