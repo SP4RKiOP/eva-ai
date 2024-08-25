@@ -103,7 +103,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           }
         })
         setChatTitles([...chatTitles]);
-        window.localStorage.setItem('chatTitles', JSON.stringify([...chatTitles]));
+        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.map((title) => JSON.stringify({ ...title }))));
     }
       })
   };
@@ -121,7 +121,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           description: "Chat title updated successfully",
         })
         setChatTitles(chatTitles.filter((title) => title.ChatId !== chatId));
-        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId)));
+        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId).map((title) => JSON.stringify(title))));
     }})
   };
 
