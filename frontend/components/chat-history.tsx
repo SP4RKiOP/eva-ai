@@ -49,7 +49,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
   const [isFetchingChatTitles, setIsFetchingChatTitles] = useState(true);
   const { toast } = useToast()
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState("");
   const handleLogout = async () => {
     window.localStorage.removeItem('chatTitles');
     window.sessionStorage.removeItem('models');
@@ -193,23 +193,23 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, firstName, lastName,
                               <path d="M2 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6.041 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM14 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
                             </svg>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className='rounded-2xl bg-neutral-300 dark:bg-[#212121]'>
-                          <DialogTrigger asChild className='block w-full text-left text-sm '>
-                            <DropdownMenuItem className='rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600'>Rename</DropdownMenuItem>
+                        <DropdownMenuContent className="rounded-2xl bg-neutral-300 dark:bg-[#212121]">
+                          <DialogTrigger asChild className="block w-full text-left text-sm">
+                            <DropdownMenuItem className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">Rename</DropdownMenuItem>
                           </DialogTrigger>
                           <DropdownMenuItem onClick={() => {handleDelete(chatTitle.ChatId), toast({
                                     description: "Chat Deleted Successfully",
                                   })}}
-                                  className='rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600'>
+                                  className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <DialogContent className="max-w-[400px] md:max-w-[425px]">
-                        <DialogHeader className='max-md:text-left'>
+                        <DialogHeader className="max-md:text-left">
                           <DialogTitle>Edit Chat Title</DialogTitle>
                           <DialogDescription>
-                            Click save when you're done.
+                            Click save when you&apos;re done.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4 max-md:justify-start">
