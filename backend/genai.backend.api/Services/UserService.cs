@@ -100,10 +100,10 @@ namespace genai.backend.api.Services
                 await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(new { ChatId = userId, ChatTitle = "No Chat Found", CreatedOn = DateTime.Now }));
             }
         }
-        public async Task<bool> RenameChatTitleAsync(string chatId, string newTitle)
+        public async Task<bool> RenameChatTitleAsync(string userId, string chatId, string newTitle)
         {
             var chat = await _dbContext.ChatHistory
-                .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
+                .FirstOrDefaultAsync(ch => ch.UserId == userId && ch.ChatId == chatId);
 
             if (chat == null)
             {
@@ -115,10 +115,10 @@ namespace genai.backend.api.Services
             return true;
         }
 
-        public async Task<bool> DeleteChatTitleAsync(string chatId)
+        public async Task<bool> DeleteChatTitleAsync(string userId, string chatId)
         {
             var chat = await _dbContext.ChatHistory
-                .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
+                .FirstOrDefaultAsync(ch => ch.UserId == userId && ch.ChatId == chatId);
 
             if (chat == null)
             {

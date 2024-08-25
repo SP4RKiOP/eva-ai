@@ -70,10 +70,21 @@ namespace genai.backend.api.Controllers
         [HttpPatch("chat/{chatId}")]
         public async Task<IActionResult> RenameOrDeleteChatTitle(string chatId, [FromQuery] string? title)
         {
+            var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
+
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+
+            // Decode the JWT token to get the userId
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jwtToken = tokenHandler.ReadJwtToken(token);
+
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+
+            var userId = userIdClaim.Value;
             if (string.IsNullOrEmpty(title))
             {
                 // If the title is null or empty, delete the chat title
-                var result = await _userService.DeleteChatTitleAsync(chatId);
+                var result = await _userService.DeleteChatTitleAsync(userId, chatId);
                 if (result)
                 {
                     return NoContent(); // Successfully deleted
@@ -83,7 +94,7 @@ namespace genai.backend.api.Controllers
             else
             {
                 // If the title is provided, rename the chat title
-                var result = await _userService.RenameChatTitleAsync(chatId, title);
+                var result = await _userService.RenameChatTitleAsync(userId, chatId, title);
                 if (result)
                 {
                     return NoContent(); // Successfully renamed
