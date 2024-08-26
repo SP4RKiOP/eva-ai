@@ -243,7 +243,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
                   <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark ${chatTitle.ChatId == chatId ? 'skeleton' : ''}`}>
                     <button
                       className={`group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip`}
-                      onClick={() => onOldChatClick(chatTitle.ChatId)}
+                      onClick={(e) => { e.preventDefault(); onOldChatClick(chatTitle.ChatId); if (window.innerWidth < 768) {toggleChatHistoryVisibility();}}}
                     >{chatTitle.ChatTitle}</button>
                   </div>
                   {/* Dropdown menu for each chat title */}

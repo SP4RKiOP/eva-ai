@@ -71,6 +71,10 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                 isPlaceholder: true
             };
             setMessages((prevMessages) => [...prevMessages, placeholderMessage]);
+            if(chatService.HubConnectionState$.value!=="Connected") {
+              await chatService.start();
+              console.log("SignalR Reconnected.");
+            }
             const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                 method: 'POST',
                 headers: {
