@@ -76,11 +76,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
         })
   };
   const handleLogout = async () => {
-    window.localStorage.removeItem('chatTitles');
-    window.sessionStorage.removeItem('models');
-    window.sessionStorage.removeItem('userId');
-    window.sessionStorage.removeItem('partner');
-    window.localStorage.removeItem('back_auth');
+    window.localStorage.clear();
+    window.sessionStorage.clear();
     await signOut({ callbackUrl: '/login' }); // Redirects to the login page after logout
   };
 
@@ -226,7 +223,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           </button>
           </div>
           {isFetchingChatTitles ? (
-            <div className="flex flex-col gap-2 pt-6 pb-4 text-sm animate-pulse">
+            <div className="flex flex-col grow gap-2 pt-6 pb-4 text-sm animate-pulse">
               <div className="h-6 rounded mb-2 skeleton"></div>
               <div className="h-6 rounded mb-2 skeleton"></div>
               <div className="h-6 rounded mb-2 skeleton"></div>
@@ -239,15 +236,15 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           ) : (
             <div className="grow flex-col gap-2 pt-4 pb-4 text-sm overflow-y-auto">
               {chatTitles.map((chatTitle) => (
-                <div key={chatTitle.ChatId} className={`relative pt-1 pb-1 overflow-x-hidden whitespace-nowrap group`}>
+                <div key={chatTitle.ChatId} className={`relative pt-1 pb-1 overflow-x-hidden group`}>
                   <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark ${chatTitle.ChatId == chatId ? 'skeleton' : ''}`}>
                     <button
-                      className={`group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip`}
+                      className={`w-full h-full text-left group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip`}
                       onClick={(e) => { e.preventDefault(); onOldChatClick(chatTitle.ChatId); if (window.innerWidth < 768) {toggleChatHistoryVisibility();}}}
                     >{chatTitle.ChatTitle}</button>
                   </div>
                   {/* Dropdown menu for each chat title */}
-                  <div className={`absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 ${chatTitle.ChatId == chatId ? 'opacity-100' : ''} transition-opacity `}>
+                  <div className={`absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 `}>
                     <Dialog>
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger className="backdrop-blur-sm inline-flex justify-center w-full p-2 text-sm font-medium text-gray-800 dark:text-white rounded-r-lg focus:outline-none">

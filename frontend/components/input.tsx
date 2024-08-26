@@ -47,28 +47,25 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                 <div className="relative flex h-full flex-1 items-stretch md:flex-col">
                     {messagesLength === 0 && <SampleInput /> }
                     <div className="flex w-full items-center">
-                        <div className={`overflow-hidden flex flex-col w-full border-black dark:border-white/50 flex-grow relative border border-token-border-heavy dark:text-white rounded-full bg-token-main-surface-primary ${(!isTyping || text.trim().length === 0) && 'opacity-50'}`}>
-                            <textarea
-                                ref={textareaRef}
-                                id="prompt-textarea"
-                                tabIndex={0}
-                                rows={1}
-                                placeholder="Message ChatIQ…"
-                                value={text}
-                                onChange={handleChange}
-                                onFocus={() => setIsTyping(true)}
-                                onBlur={() => setIsTyping(text.trim().length > 0)}
-                                onKeyDown={handleKeyDown}
-                                className="m-0 w-full resize-none border-0 bg-transparent focus:ring-0 focus-visible:ring-0 dark:bg-transparent max-h-25 py-[10px] pr-10 md:py-3.5 md:pr-12 placeholder-black dark:placeholder-white/50 pl-3 md:pl-4"
-                                style={{ maxHeight: '240px', overflowY: 'auto' }}
-                            />
-                            <button
-                                type="submit"
-                                
-                                disabled={!isTyping || text.trim().length === 0}
-                                className={`absolute h-8 w-8 top-1.5 right-1.5 rounded-full border ${isTyping && text.trim().length > 0 ? 'border-black bg-black' : 'border-black bg-black'} p-0.5 text-white transition-colors disabled:opacity-10 dark:border-white dark:bg-white dark:hover:bg-white md:top-2.5 md:right-2.5`}
-                                data-testid="send-button"
-                            >
+                        <div className={`flex w-full justify-between items-stretch dark:text-white rounded-[26px] bg-[#f4f4f4] dark:bg-[--main-surface-secondary]`}>
+                            <div className=" grow">
+                                <textarea
+                                        ref={textareaRef}
+                                        id="prompt-textarea"
+                                        tabIndex={0}
+                                        rows={1}
+                                        placeholder="Message ChatIQ…"
+                                        value={text}
+                                        onChange={handleChange}
+                                        onFocus={() => setIsTyping(true)}
+                                        onBlur={() => setIsTyping(text.trim().length > 0)}
+                                        onKeyDown={handleKeyDown}
+                                    className="w-full resize-none outline-none bg-transparent dark:bg-transparent py-[10px] md:py-3 pl-3 md:pl-4 placeholder-black/60 dark:placeholder-white/60"
+                                    style={{ maxHeight: '240px', overflowY: 'auto' }}
+                                />
+                            </div>
+                            <button type="submit" disabled={!isTyping || text.trim().length === 0} 
+                            className={`self-end h-8 w-8 mr-2 md:mr-2.5 mb-2 md:mb-2.5 rounded-full  disabled:opacity-20 bg-black dark:bg-white`}>
                                 <span className="flex justify-center" data-state="closed">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white dark:text-black">
                                         <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
@@ -80,7 +77,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                 </div>
             </form>
             <div className="relative px-2 py-2 text-center text-xs text-token-text-secondary md:px-[60px]">
-                <span>ChatIQ is stable & fast but can do mistake(Obviously probability is very low!!). Consider checking important information.</span>
+                <span>Consider checking important information.</span>
             </div>
         </div>
     );

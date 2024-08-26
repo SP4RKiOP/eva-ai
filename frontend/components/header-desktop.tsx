@@ -6,6 +6,7 @@ import { ChatService } from '@/lib/service';
 interface Model {
   id: number;
   modelName: string;
+  lastSelected: boolean;
 }
 interface ModelSelectProps {
     service:ChatService;
@@ -14,7 +15,6 @@ interface ModelSelectProps {
 const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
     const [models, setModels] = useState<Model[]>([]);
     const [selectedModel, setSelectedModel] = useState<string>('');
-
     useEffect(() => {
         // Load models from session storage if available
         const savedModels = window.sessionStorage.getItem('models');
@@ -22,14 +22,23 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
           const parsedModels = JSON.parse(savedModels);
           setModels(parsedModels);
           if (parsedModels.length > 0) {
-            setSelectedModel(parsedModels[0].modelName);
-            service.selectedModelId$.next(parsedModels[0].id);
+            //check if any model lastSelected is true
+            const lastSelectedModel = parsedModels.find((model: Model) => model.lastSelected === true);
+            if (lastSelectedModel) {
+              setSelectedModel(lastSelectedModel.modelName);
+              service.selectedModelId$.next(lastSelectedModel.id);
+            } else {
+              setSelectedModel(parsedModels[0].modelName);
+              service.selectedModelId$.next(parsedModels[0].id);
+            }
           }
         }
       
         // Subscribe to availableModels changes
         const subscription = service.availableModels$.subscribe((models) => {
           if (models && models.length > 0) {
+            // set lastSelected to false by default
+            models.forEach((model: Model) => model.lastSelected = false);
             setModels(models);
             window.sessionStorage.setItem('models', JSON.stringify(models));
       
@@ -44,9 +53,20 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
       }, [service]);
       
 
-      const handleModelChange = (modelName: string, id: number) => {
+      const handleModelChange = (modelName: string, id: number, lastSelected: boolean) => {
         setSelectedModel(modelName);
         service.selectedModelId$.next(id);
+        // edit the model in session storage to update lastSelected value to the corresponding model with same id
+        const model = window.sessionStorage.getItem('models');
+        if (model) {
+          const parsedModels = JSON.parse(model);
+          parsedModels.forEach((m: Model) => m.lastSelected = false);
+          const modelIndex = parsedModels.findIndex((m: Model) => m.id === id);
+          if (modelIndex !== -1) {
+            parsedModels[modelIndex].lastSelected = lastSelected;
+            window.sessionStorage.setItem('models', JSON.stringify(parsedModels));
+          }
+        }
       };
 
       return (
@@ -86,7 +106,7 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
                                         <MenuItem key={model.id} >
                                             {({ focus }) => (
                                                 <button
-                                                    onClick={() => handleModelChange(model.modelName, model.id)}
+                                                    onClick={() => {handleModelChange(model.modelName, model.id, true)}}
                                                     className={`rounded-xl px-4 w-full py-2 text-sm text-left ${focus? 'bg-neutral-400 dark:bg-neutral-800' : ''}`}
                                                 >
                                                     {model.modelName}
