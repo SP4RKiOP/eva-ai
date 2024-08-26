@@ -211,6 +211,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
             className={`flex h-10 items-center gap-2 rounded-lg p-2 font-bold hover-light-dark`}
             onClick={(e) => {
               e.preventDefault();
+              if (window.innerWidth < 768) {
+                toggleChatHistoryVisibility();
+              }
               onNewChatClick();
             }}
           >

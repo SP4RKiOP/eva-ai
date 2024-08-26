@@ -11,7 +11,7 @@ interface ModelSelectProps {
     service:ChatService;
 }
 
-const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
+const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
     const [models, setModels] = useState<Model[]>([]);
     const [selectedModel, setSelectedModel] = useState<string>('');
 
@@ -19,19 +19,30 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
         // Load models from session storage if available
         const savedModels = window.sessionStorage.getItem('models');
         if (savedModels) {
-        setModels(JSON.parse(savedModels));
+          const parsedModels = JSON.parse(savedModels);
+          setModels(parsedModels);
+          if (parsedModels.length > 0) {
+            setSelectedModel(parsedModels[0].modelName);
+            service.selectedModelId$.next(parsedModels[0].id);
+          }
         }
+      
         // Subscribe to availableModels changes
-        const subscription = service.availableModels$.subscribe(models => {
-          if(models && models.length > 0) {
+        const subscription = service.availableModels$.subscribe((models) => {
+          if (models && models.length > 0) {
             setModels(models);
             window.sessionStorage.setItem('models', JSON.stringify(models));
+      
+            // Set the first model as the selected model if none is selected
+            setSelectedModel(models[0].modelName);
+            service.selectedModelId$.next(models[0].id);
           }
         });
-    
+      
         // Cleanup subscription on component unmount
         return () => subscription.unsubscribe();
       }, [service]);
+      
 
       const handleModelChange = (modelName: string, id: number) => {
         setSelectedModel(modelName);
@@ -95,4 +106,4 @@ const ModelSelect: React.FC<ModelSelectProps> = ({service}) => {
     );
 };
 
-export default ModelSelect;
+export default HeaderDesktop;

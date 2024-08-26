@@ -2,8 +2,8 @@ import React, { useEffect, useState} from 'react';
 import Input from './input';
 import ChatHistory from './chat-history';
 import Sidebar from './sidebar';
-import Header from './header-mobile';
-import ModelSelect from './header-desktop';
+import HeaderMobile from './header-mobile';
+import HeaderDesktop from './header-desktop';
 import Greet from './greet';
 import { VisibilityProvider } from './VisibilityContext';
 import remarkGfm from 'remark-gfm'
@@ -273,7 +273,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
                         <div className="flex h-screen flex-col">
-                            <Header service={chatService}/><ModelSelect service={chatService}/>
+                            <HeaderMobile service={chatService} onNewChatClick={() => handleNewChat()}/><HeaderDesktop service={chatService}/>
                             <div className='flex flex-col-reverse h-full overflow-y-auto'>
                                 <div className="translateZ(0px)">
                                     {messages.length === 0 ? ( <Greet />) : 

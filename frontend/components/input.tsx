@@ -47,7 +47,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                 <div className="relative flex h-full flex-1 items-stretch md:flex-col">
                     {messagesLength === 0 && <SampleInput /> }
                     <div className="flex w-full items-center">
-                        <div className={`overflow-hidden flex flex-col w-full border-black dark:border-white/50 flex-grow relative border border-token-border-heavy dark:text-white rounded-2xl bg-token-main-surface-primary ${(!isTyping || text.trim().length === 0) && 'opacity-50'}`}>
+                        <div className={`overflow-hidden flex flex-col w-full border-black dark:border-white/50 flex-grow relative border border-token-border-heavy dark:text-white rounded-full bg-token-main-surface-primary ${(!isTyping || text.trim().length === 0) && 'opacity-50'}`}>
                             <textarea
                                 ref={textareaRef}
                                 id="prompt-textarea"
@@ -66,7 +66,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                                 type="submit"
                                 
                                 disabled={!isTyping || text.trim().length === 0}
-                                className={`absolute h-8 w-8 top-1.5 right-1.5 rounded-lg border ${isTyping && text.trim().length > 0 ? 'border-black bg-black' : 'border-black bg-black'} p-0.5 text-white transition-colors disabled:opacity-10 dark:border-white dark:bg-white dark:hover:bg-white md:top-2.5 md:right-2.5`}
+                                className={`absolute h-8 w-8 top-1.5 right-1.5 rounded-full border ${isTyping && text.trim().length > 0 ? 'border-black bg-black' : 'border-black bg-black'} p-0.5 text-white transition-colors disabled:opacity-10 dark:border-white dark:bg-white dark:hover:bg-white md:top-2.5 md:right-2.5`}
                                 data-testid="send-button"
                             >
                                 <span className="flex justify-center" data-state="closed">
