@@ -149,6 +149,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           .then((response) => 
             response.status == 401 ? getuId_token() : response.json())
           .then((data) => {
+            console.log(data);
             if (data && data.length > 0) {
               const newMessages: Message[] = data
                 .filter(
@@ -157,7 +158,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                 )
                 .map((chat: any) => ({
                   role: chat.Role.Label,
-                  text: chat.Content,
+                  text: chat.Items[0].Text,
                 }));
               setMessages(newMessages);
             }
