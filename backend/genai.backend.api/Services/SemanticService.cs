@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.SignalR;
 using ZstdSharp.Unsafe;
 using genai.backend.api.Models;
 using System.Text.RegularExpressions;
-using Humanizer;
 
 namespace genai.backend.api.Services
 {

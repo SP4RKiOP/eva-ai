@@ -204,7 +204,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           </svg>
         </button>
       </div>
-      <div className="h-full chat-history overflow-y-scroll">
+      <div className="h-full chat-history overflow-y-auto">
         <nav className="flex flex-col justify-between h-full w-full px-3 py-3" aria-label="Chat history">
           <div className="max-md:pt-10">
           <button
@@ -237,7 +237,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           ) : chatTitles.length === 0 ? (
             <div className={`grow gap-2 pt-8 pb-4 text-sm text-center`}>No Chats Found.<div className='pt-2'>Go Ahead with your first question</div></div>
           ) : (
-            <div className="grow flex-col gap-2 pt-4 pb-4 text-sm overflow-y-scroll">
+            <div className="grow flex-col gap-2 pt-4 pb-4 text-sm overflow-y-auto">
               {chatTitles.map((chatTitle) => (
                 <div key={chatTitle.ChatId} className={`relative pt-1 pb-1 overflow-x-hidden whitespace-nowrap group`}>
                   <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark ${chatTitle.ChatId == chatId ? 'skeleton' : ''}`}>

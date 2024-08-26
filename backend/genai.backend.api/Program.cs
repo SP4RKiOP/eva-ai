@@ -108,7 +108,7 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
-app.MapHub<ChatHub>(pattern: "/chat").AllowAnonymous();
+app.MapHub<ChatHub>(pattern: "/hub").AllowAnonymous();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -3,7 +3,9 @@ import { BehaviorSubject } from 'rxjs';
 
 export class ChatService {
     public connection: signalR.HubConnection = new signalR.HubConnectionBuilder()
-    .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/chat")
+    .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/hub")
+    .withAutomaticReconnect()
+    .withKeepAliveInterval(5000)
     .configureLogging(signalR.LogLevel.Information)
     .build();
 
@@ -78,6 +80,7 @@ export class ChatService {
     //stop connection
     public async stop(){
         this.connection.stop();
+        this.HubConnectionState$.next("Disconnected"); // Set the HubConnectionState to "Disconnected";
         this.roomJoined$.next(false);
         console.log("SignalR Disconnected.");
     }
