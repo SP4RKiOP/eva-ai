@@ -302,25 +302,30 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                         <div className="font-bold select-none capitalize">
                                                           {message.role==='user'? (fName):('ChatIQ')}</div>
                                                           <div className={`flex ${message.role === 'user' ? 'place-content-end' : ''}`}>
-                                                            <div className={`min-h-[20px] font-sans flex flex-col  gap-3 whitespace-pre-wrap break-words mt-1 overflow-x-auto ${message.role === 'user' ? 'bg-gray-300 dark:bg-[#2f2f2f] dark:text-white rounded-xl px-5 py-1.5 w-fit' : ''}`}>
+                                                            <div className={`min-h-[20px] font-sans flex flex-col mt-1 overflow-x-auto ${message.role === 'user' ? 'bg-gray-300 dark:bg-[#2f2f2f] dark:text-white rounded-xl px-5 py-1.5 w-fit' : ''}`}>
                                                               {message.isPlaceholder ? (
                                                                   <SkeletonLoader />
                                                               ) : (
-                                                                  <div className=''><MemoizedReactMarkdown
-                                                                  className='prose prose-neutral break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0'
-                                                                  remarkPlugins={[remarkGfm, remarkMath]}
-                                                                  components={{
-                                                                    code({ node, inline, className, children, ...props }) {
-                                                                      if (children.length) {
-                                                                        if (children[0] == '▍') {
-                                                                          return (
-                                                                            <span className="mt-1 cursor-default animate-pulse">▍</span>
-                                                                          )
+                                                                  message.role === 'assistant' ? (<MemoizedReactMarkdown
+                                                                    className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0"
+                                                                    remarkPlugins={[remarkGfm, remarkMath]}
+                                                                    components={{
+                                                                      p({ children }) {
+                                                                        return <p className="mb-2 last:mb-0">{children}</p>
+                                                                      },
+                                                                      code({ node, inline, className, children, ...props }) {
+                                                                        if (children.length) {
+                                                                          if (children[0] == '▍') {
+                                                                            return (
+                                                                              <span className="mt-1 cursor-default animate-pulse">▍</span>
+                                                                            )
+                                                                          }
+                                                          
+                                                                          children[0] = (children[0] as string).replace('`▍`', '▍')
                                                                         }
-                                                        
-                                                                        children[0] = (children[0] as string).replace('`▍`', '▍')
-                                                                      }
-                                                                        const match = /language-(\w+)/.exec(className || '');
+                                                          
+                                                                        const match = /language-(\w+)/.exec(className || '')
+                                                          
                                                                         if (inline) {
                                                                           return (
                                                                             <code className={className} {...props}>
@@ -328,20 +333,23 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                                             </code>
                                                                           )
                                                                         }
-                                                                        return match ? (
+                                                          
+                                                                        return (
                                                                           <CodeBlock
-                                                                          key={Math.random()}
-                                                                          language={(match && match[1]) || ''}
-                                                                          value={String(children).replace(/\n$/, '')}
-                                                                          {...props}
-                                                                        />
-                                                                        ) : (
-                                                                            <code className={className} {...props}>
-                                                                                {children}
-                                                                            </code>
+                                                                            key={Math.random()}
+                                                                            language={(match && match[1]) || ''}
+                                                                            value={String(children).replace(/\n$/, '')}
+                                                                            {...props}
+                                                                          />
                                                                         )
-                                                                    },
-                                                                }}>{message.text}</MemoizedReactMarkdown></div>
+                                                                      }
+                                                                    }}
+                                                                  >
+                                                                    {message.text}
+                                                                  </MemoizedReactMarkdown>
+                                                                  ) : (
+                                                                    <div className="text-left whitespace-pre-wrap">{message.text}</div>
+                                                                  )
                                                               )}
                                                             </div>
                                                           </div>
