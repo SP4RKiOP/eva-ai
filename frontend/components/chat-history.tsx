@@ -100,7 +100,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           }
         })
         setChatTitles([...chatTitles]);
-        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.map((title) => JSON.stringify({ ...title }))));
+        window.sessionStorage.setItem('chatTitles', JSON.stringify(chatTitles.map((title) => JSON.stringify({ ...title }))));
     }
       })
   };
@@ -118,14 +118,14 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           description: "Chat title updated successfully",
         })
         setChatTitles(chatTitles.filter((title) => title.ChatId !== chatId));
-        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId).map((title) => JSON.stringify(title))));
+        window.sessionStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId).map((title) => JSON.stringify(title))));
     }})
   };
 
   useEffect(() => {
     const fetchAndStoreChatTitles = async () => {
       setIsFetchingChatTitles(true);
-      const cachedTitles = window.localStorage.getItem('chatTitles');
+      const cachedTitles = window.sessionStorage.getItem('chatTitles');
       let existingTitles: ChatTitle[] = [];
 
       if (cachedTitles) {
@@ -169,9 +169,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           setChatTitles(uniqueTitles);
           setIsFetchingChatTitles(false);
           // Update the local storage with the merged and sorted data
-          window.localStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map((title) => JSON.stringify(title))));
+          window.sessionStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map((title) => JSON.stringify(title))));
         } else {
-          if (!window.localStorage.getItem('chatTitles')) {
+          if (!window.sessionStorage.getItem('chatTitles')) {
             setChatTitles([]);
             setIsFetchingChatTitles(false);
           }
