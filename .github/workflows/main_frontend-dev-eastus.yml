@@ -32,8 +32,8 @@ jobs:
       - name: Copy static files
         run: |
           cd frontend
-          cp -R ./public frontend/.next/standalone/public
-          cp -R ./.next/static frontend/.next/standalone/.next/static
+          cp -R public .next/standalone/public
+          cp -R .next/static .next/standalone/.next/static
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
