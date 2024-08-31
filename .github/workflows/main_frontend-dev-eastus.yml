@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
@@ -21,20 +23,23 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: npm install, build, and test
+      - name: npm install, build
         run: |
+          cd frontend
           npm install
-          npm run build --if-present
-          npm run test --if-present
+          npm run build
 
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+      - name: Copy static files
+        run: |
+          cd frontend
+          cp -R ./public frontend/.next/standalone/public
+          cp -R ./.next/static frontend/.next/standalone/.next/static
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: release.zip
+          path: frontend/.next/standalone
 
   deploy:
     runs-on: ubuntu-latest
@@ -50,9 +55,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -68,4 +70,3 @@ jobs:
           app-name: 'frontend-dev-eastus'
           slot-name: 'Production'
           package: .
-          
