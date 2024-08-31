@@ -51,7 +51,6 @@ namespace genai.backend.api.Plugins
                     using (var streamReader = new System.IO.StreamReader(response.GetResponseStream()))
                     {
                         string json = await streamReader.ReadToEndAsync();
-                        Console.WriteLine("Bing Search Used");
                         Rootobject parsedJson = JsonConvert.DeserializeObject<Rootobject>(json);
 
                         if (parsedJson?.webPages?.value == null)
