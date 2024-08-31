@@ -32,8 +32,6 @@ jobs:
       - name: Copy static files
         run: |
           cd frontend
-          mkdir -p .next/standalone/public
-          mkdir -p .next/standalone/.next/static
           cp -R public .next/standalone/public
           cp -R .next/static .next/standalone/.next/static
 
