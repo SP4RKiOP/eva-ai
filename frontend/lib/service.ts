@@ -5,7 +5,6 @@ export class ChatService {
     public connection: signalR.HubConnection = new signalR.HubConnectionBuilder()
     .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/hub")
     .withAutomaticReconnect()
-    .withKeepAliveInterval(5000)
     .configureLogging(signalR.LogLevel.Information)
     .build();
 
@@ -42,7 +41,7 @@ export class ChatService {
       setTimeout(() => {
         this.msgs = {};
         this.msgs$.next(this.msgs);
-      }, 2500); // 1000 milliseconds = 1 seconds
+      }, 500); // 1000 milliseconds = 1 seconds
     });
     this.connection.on("ChatTitles", (chatTitles: any) => {
       this.chatTitles = [...this.chatTitles, chatTitles];

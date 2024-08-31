@@ -204,7 +204,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           })
           .then( (response) => {
             if (response.ok) {
-              setTimeout(() => {setUserId(data as string)}, 2000);
+              setTimeout(() => {setUserId(data as string)}, 1000);
             }
           })
         })
