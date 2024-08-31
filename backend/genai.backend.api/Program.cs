@@ -1,9 +1,11 @@
 using genai.backend.api.Data;
 using genai.backend.api.Hub;
 using genai.backend.api.Models;
+using genai.backend.api.Plugins;
 using genai.backend.api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +68,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<BingPlugin>();
 builder.Services.AddScoped<SemanticService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ChatHub>();
