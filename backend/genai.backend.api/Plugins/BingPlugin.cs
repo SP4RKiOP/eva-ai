@@ -27,29 +27,68 @@ namespace genai.backend.api.Plugins
             string subscriptionKey = config["Bing:Key"];
             string endpoint = config["Bing:Endpoint"];
 
-            // Construct the URI of the search request
-            var uriQuery = endpoint + "?q=" + Uri.EscapeDataString(query);
-            // Perform the Web request and get the response
-            WebRequest request = HttpWebRequest.Create(uriQuery);
-            request.Headers["Ocp-Apim-Subscription-Key"] = subscriptionKey;
-            HttpWebResponse response = (HttpWebResponse)await request.GetResponseAsync();
-            string json = new StreamReader(response.GetResponseStream()).ReadToEnd();
-            Console.WriteLine("Bing Search Used");
-            Rootobject parsedJson = JsonConvert.DeserializeObject<Rootobject>(json);
+            if (string.IsNullOrEmpty(subscriptionKey) || string.IsNullOrEmpty(endpoint))
+            {
+                return "Bing Search configuration is missing or invalid.";
+            }
 
-            // Extract snippets from main results
-            var mainSnippets = parsedJson.webPages.value.Select(item => item.snippet);
+            try
+            {
+                // Construct the URI of the search request
+                var uriQuery = $"{endpoint}?q={Uri.EscapeDataString(query)}";
 
-            // Safely extract snippets from deep links if they exist
-            var deepLinkSnippets = parsedJson.webPages.value
-                .Where(item => item.deepLinks != null) // Ensure deepLinks is not null
-                .SelectMany(item => item.deepLinks)
-                .Select(dl => $"{dl.name}: {dl.snippet}");
+                // Perform the Web request and get the response
+                WebRequest request = HttpWebRequest.Create(uriQuery);
+                request.Headers["Ocp-Apim-Subscription-Key"] = subscriptionKey;
 
-            string[] result = mainSnippets.Concat(deepLinkSnippets).ToArray();
-            string formattedResult = JsonConvert.SerializeObject(result);
+                using (HttpWebResponse response = (HttpWebResponse)await request.GetResponseAsync())
+                {
+                    if (response.StatusCode != HttpStatusCode.OK)
+                    {
+                        return $"Bing Search failed with status code: {response.StatusCode}";
+                    }
 
-            return formattedResult;
+                    using (var streamReader = new System.IO.StreamReader(response.GetResponseStream()))
+                    {
+                        string json = await streamReader.ReadToEndAsync();
+                        Console.WriteLine("Bing Search Used");
+                        Rootobject parsedJson = JsonConvert.DeserializeObject<Rootobject>(json);
+
+                        if (parsedJson?.webPages?.value == null)
+                        {
+                            return "No search results found.";
+                        }
+
+                        // Extract snippets from main results
+                        var mainSnippets = parsedJson.webPages.value.Select(item => item.snippet);
+
+                        // Safely extract snippets from deep links if they exist
+                        var deepLinkSnippets = parsedJson.webPages.value
+                            .Where(item => item.deepLinks != null)
+                            .SelectMany(item => item.deepLinks)
+                            .Select(dl => $"{dl.name}: {dl.snippet}");
+
+                        string[] result = mainSnippets.Concat(deepLinkSnippets).ToArray();
+                        string formattedResult = JsonConvert.SerializeObject(result);
+
+                        return formattedResult;
+                    }
+                }
+            }
+            catch (WebException webEx)
+            {
+                // Handle WebException (e.g., network errors, invalid response, etc.)
+                using (var streamReader = new System.IO.StreamReader(webEx.Response.GetResponseStream()))
+                {
+                    string errorResponse = await streamReader.ReadToEndAsync();
+                    return $"WebException occurred: {webEx.Message}. Response: {errorResponse}";
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle general exceptions
+                return $"An error occurred: {ex.Message}";
+            }
         }
 
 
