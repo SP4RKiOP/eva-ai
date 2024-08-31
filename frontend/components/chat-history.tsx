@@ -57,7 +57,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
       emailId: uMail,
       firstName: firstName,
       lastName: lastName,
-      partner: (session as any)?.partner || window.sessionStorage.getItem('partner'),
+      partner: (session as any)?.partner || window.localStorage.getItem('partner'),
     };
       const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
         method: "POST",
@@ -77,7 +77,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
   };
   const handleLogout = async () => {
     window.localStorage.clear();
-    window.sessionStorage.clear();
+    window.localStorage.clear();
     await signOut({ callbackUrl: '/login' }); // Redirects to the login page after logout
   };
 
@@ -100,7 +100,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           }
         })
         setChatTitles([...chatTitles]);
-        window.sessionStorage.setItem('chatTitles', JSON.stringify(chatTitles.map((title) => JSON.stringify({ ...title }))));
+        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.map((title) => JSON.stringify({ ...title }))));
     }
       })
   };
@@ -118,14 +118,14 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           description: "Chat title updated successfully",
         })
         setChatTitles(chatTitles.filter((title) => title.ChatId !== chatId));
-        window.sessionStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId).map((title) => JSON.stringify(title))));
+        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId).map((title) => JSON.stringify(title))));
     }})
   };
 
   useEffect(() => {
     const fetchAndStoreChatTitles = async () => {
       setIsFetchingChatTitles(true);
-      const cachedTitles = window.sessionStorage.getItem('chatTitles');
+      const cachedTitles = window.localStorage.getItem('chatTitles');
       let existingTitles: ChatTitle[] = [];
 
       if (cachedTitles) {
@@ -169,9 +169,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           setChatTitles(uniqueTitles);
           setIsFetchingChatTitles(false);
           // Update the local storage with the merged and sorted data
-          window.sessionStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map((title) => JSON.stringify(title))));
+          window.localStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map((title) => JSON.stringify(title))));
         } else {
-          if (!window.sessionStorage.getItem('chatTitles')) {
+          if (!window.localStorage.getItem('chatTitles')) {
             setChatTitles([]);
             setIsFetchingChatTitles(false);
           }

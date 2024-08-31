@@ -125,7 +125,12 @@ const CodeBlock: FC<Props> = memo(({ language, value }) => {
           margin: 0,
           width: '100%',
           background: 'black',
-          padding: '1.5rem 1rem'
+          padding: '1.5rem 1rem',
+        }}
+        codeTagProps={{
+          style: {
+            fontSize: '0.875rem'
+          }
         }}
       >
         {value}

@@ -38,7 +38,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         emailId: uMail,
         firstName: fName,
         lastName: lName,
-        partner: (session as any)?.partner || window.sessionStorage.getItem('partner'),
+        partner: (session as any)?.partner || window.localStorage.getItem('partner'),
       };
         const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
           method: "POST",
@@ -102,7 +102,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     };
     const SkeletonLoader = () => (
       
-        <div className="mt-1 flex flex-col space-y-2.5 animate-pulse w-fit md:w-[calc(100%-2rem)]">
+        <div className="mt-1 flex flex-col space-y-2 animate-pulse w-fit md:w-[calc(100%-2rem)]">
             <div className="flex items-center w-full">
                 <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-40"></div>
                 <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-24"></div>
@@ -134,7 +134,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
 
     useEffect(() => {
       if((session as any)?.partner){
-        window.sessionStorage.setItem('partner', (session as any)?.partner);
+        window.localStorage.setItem('partner', (session as any)?.partner);
       }
     // Fetch latest chat history
     if (currentChatId) {
@@ -165,13 +165,13 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           .catch((error) => console.error("Error fetching chat history:", error));
       }
     }
-    if((window.sessionStorage.getItem('userId')==null || window.sessionStorage.getItem('userId')?.length==0) && status=='authenticated') {
+    if((window.localStorage.getItem('userId')==null || window.localStorage.getItem('userId')?.length==0) && status=='authenticated') {
       
       const userData = {
         emailId: uMail,
         firstName: fName,
         lastName: lName,
-        partner: (session as any)?.partner || window.sessionStorage.getItem('partner'),
+        partner: (session as any)?.partner || window.localStorage.getItem('partner'),
       };
       // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
       // Send userData to your API endpoint
@@ -195,7 +195,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           if(chatService.HubConnectionState$.value=="Connected" && !chatService.roomJoined$.value) {
             chatService.joinChat(data as string);
           }
-          window.sessionStorage.setItem('userId', data as string);
+          window.localStorage.setItem('userId', data as string);
           fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/StreamUserData`, {
             method: "GET",
             headers: {
@@ -212,7 +212,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           console.error("Error:", error);
         });
     }else {
-      setUserId(window.sessionStorage.getItem('userId') as string);
+      setUserId(window.localStorage.getItem('userId') as string);
     }
     if(userId){
       if(chatService.HubConnectionState$.value=="Connected" && !chatService.roomJoined$.value) {
@@ -299,15 +299,15 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                         </div>
                                                     </div>
                                                     <div className='relative overflow-hidden flex w-full flex-col'>
-                                                        <div className="font-bold select-none capitalize">
+                                                        <div className="font-semibold select-none capitalize">
                                                           {message.role==='user'? (fName):('ChatIQ')}</div>
                                                           <div className={`flex ${message.role === 'user' ? 'place-content-end' : ''}`}>
-                                                            <div className={`min-h-[20px] font-sans flex flex-col mt-1 overflow-x-auto ${message.role === 'user' ? 'bg-gray-300 dark:bg-[#2f2f2f] dark:text-white rounded-xl px-5 py-1.5 w-fit' : ''}`}>
+                                                            <div className={`min-h-[20px] flex flex-col mt-1 overflow-x-auto ${message.role === 'user' ? 'bg-gray-300 dark:bg-[#2f2f2f] dark:text-white rounded-xl px-5 py-1.5 w-fit' : ''}`}>
                                                               {message.isPlaceholder ? (
                                                                   <SkeletonLoader />
                                                               ) : (
                                                                   message.role === 'assistant' ? (<MemoizedReactMarkdown
-                                                                    className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0"
+                                                                    className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 text-sm dark:text-white"
                                                                     remarkPlugins={[remarkGfm, remarkMath]}
                                                                     components={{
                                                                       p({ children }) {
@@ -348,7 +348,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                                     {message.text}
                                                                   </MemoizedReactMarkdown>
                                                                   ) : (
-                                                                    <div className="text-left whitespace-pre-wrap">{message.text}</div>
+                                                                    <div className="text-left whitespace-pre-wrap text-sm">{message.text}</div>
                                                                   )
                                                               )}
                                                             </div>

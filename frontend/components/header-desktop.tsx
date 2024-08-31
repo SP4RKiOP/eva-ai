@@ -17,7 +17,7 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
     const [selectedModel, setSelectedModel] = useState<string>('');
     useEffect(() => {
         // Load models from session storage if available
-        const savedModels = window.sessionStorage.getItem('models');
+        const savedModels = window.localStorage.getItem('models');
         if (savedModels) {
           const parsedModels = JSON.parse(savedModels);
           setModels(parsedModels);
@@ -40,7 +40,7 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
             // set lastSelected to false by default
             models.forEach((model: Model) => model.lastSelected = false);
             setModels(models);
-            window.sessionStorage.setItem('models', JSON.stringify(models));
+            window.localStorage.setItem('models', JSON.stringify(models));
       
             // Set the first model as the selected model if none is selected
             setSelectedModel(models[0].modelName);
@@ -57,14 +57,14 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service}) => {
         setSelectedModel(modelName);
         service.selectedModelId$.next(id);
         // edit the model in session storage to update lastSelected value to the corresponding model with same id
-        const model = window.sessionStorage.getItem('models');
+        const model = window.localStorage.getItem('models');
         if (model) {
           const parsedModels = JSON.parse(model);
           parsedModels.forEach((m: Model) => m.lastSelected = false);
           const modelIndex = parsedModels.findIndex((m: Model) => m.id === id);
           if (modelIndex !== -1) {
             parsedModels[modelIndex].lastSelected = lastSelected;
-            window.sessionStorage.setItem('models', JSON.stringify(parsedModels));
+            window.localStorage.setItem('models', JSON.stringify(parsedModels));
           }
         }
       };

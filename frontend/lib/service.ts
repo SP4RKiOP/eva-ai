@@ -65,10 +65,10 @@ export class ChatService {
             .then(() => {
                 console.log("SignalR Connected.");
                 this.HubConnectionState$.next("Connected"); // Set the HubConnectionState to "Connected";
-                if(typeof window !== 'undefined' && window.sessionStorage.getItem('userId')){
-                  this.connection.invoke("JoinRoom", { userId: window.sessionStorage.getItem('userId') });
+                if(typeof window !== 'undefined' && window.localStorage.getItem('userId')){
+                  this.connection.invoke("JoinRoom", { userId: window.localStorage.getItem('userId') });
                   this.roomJoined$.next(true);
-                  console.log("User joined successfully.", window.sessionStorage.getItem('userId'));
+                  console.log("User joined successfully.", window.localStorage.getItem('userId'));
                 }
             });
         } catch (err) {
