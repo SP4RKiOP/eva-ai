@@ -6,6 +6,9 @@ using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
 using genai.backend.api.Data;
+using Tiktoken;
+using Microsoft.SemanticKernel.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace genai.backend.api.Services
 {
@@ -21,21 +24,23 @@ namespace genai.backend.api.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly ResponseStream _responseStream;
         private readonly UserService _userService;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(4);
         /// <summary>
         /// Initializes a new instance of the <see cref="SemanticService"/> class.
         /// </summary>
         /// <param name="configuration">The configuration object.</param>
         /// <param name="dbContext">The application database context.</param>
-        public SemanticService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream, UserService userService)
+        public SemanticService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream, UserService userService, IMemoryCache cache)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             _responseStream = responseStream;
-
-            // Get values from appsettings.json
-            var redisConnection = _configuration["ConnectionStrings:Redis"];
-            _redisConnection = ConnectionMultiplexer.Connect(redisConnection);
             _userService = userService;
+            _cache = cache;
+            /*// Get values from appsettings.json
+            var redisConnection = _configuration["ConnectionStrings:Redis"];
+            _redisConnection = ConnectionMultiplexer.Connect(redisConnection);*/
         }
 
         /// <summary>
@@ -48,26 +53,33 @@ namespace genai.backend.api.Services
         {
             try
             {
-                var isModelSubscribed = await _dbContext.UserSubscriptions
-                .AnyAsync(u => u.UserId == userId && u.ModelId == modelId);
+                bool isModelSubscribed = await _cache.GetOrCreateAsync($"subscribed-{userId}-{modelId}", async entry =>
+                {
+                    entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
+                    return await _dbContext.UserSubscriptions.AnyAsync(u => u.UserId == userId && u.ModelId == modelId);
+                });
+
                 if (!isModelSubscribed)
                 {
-                   //back to default model
                     modelId = _configuration.GetValue<int>("DefaultModelId");
                 }
-                
-                var GptModel = await _dbContext.AvailableModels
-                .Where(m => m.DeploymentId == modelId)
-                .Select(m => new
+                var GptModel = await _cache.GetOrCreateAsync($"model-details-{modelId}", async entry =>
                 {
-                    ModelName = m.DeploymentName,
-                    ModelUrl = m.Endpoint,
-                    ModelKey = m.ApiKey
-                })
-                .ToListAsync();
+                    entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
+                    return await _dbContext.AvailableModels
+                        .Where(m => m.DeploymentId == modelId)
+                        .Select(m => new
+                        {
+                            ModelName = m.DeploymentName,
+                            ModelUrl = m.Endpoint,
+                            ModelKey = m.ApiKey
+                        })
+                        .ToListAsync();
+                });
                 var chatKernel = Kernel.CreateBuilder()
                 .AddAzureOpenAIChatCompletion(
                     deploymentName: GptModel[0].ModelName,
+                    modelId: GptModel[0].ModelName,
                     endpoint: GptModel[0].ModelUrl,
                     apiKey: GptModel[0].ModelKey)
                 .Build();
@@ -99,7 +111,22 @@ namespace genai.backend.api.Services
                     .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
 
                 var oldchatHistory = JsonSerializer.Deserialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(existingChatHistory.ChatHistoryJson);
-                oldchatHistory.AddMessage(AuthorRole.User, userInput);
+                //oldchatHistory.AddMessage(AuthorRole.User, userInput);
+                oldchatHistory.Add(
+                    new()
+                    {
+                        Role = AuthorRole.User,
+                        Items = [
+                            new TextContent{ Text = userInput },
+                            ],
+                        ModelId = chatCompletion.GetModelId(),
+                        Metadata = new Dictionary<string, object?>
+                        {
+                            { "TokenConsumed", TokenCalculator(chatCompletion.GetModelId(), userInput, null).PromptTokens },
+                            { "CreatedOn", DateTime.UtcNow.ToString() }
+                        }.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
+                    }
+                );
 
                 var llmresponse = chatCompletion.GetStreamingChatMessageContentsAsync(oldchatHistory, new OpenAIPromptExecutionSettings { MaxTokens = 4096, Temperature = 0.001 });
 
@@ -116,10 +143,29 @@ namespace genai.backend.api.Services
                 }
                 await _responseStream.EndStream(userId);
 
-                oldchatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
+                var completionToken = TokenCalculator(chatCompletion.GetModelId(), null, fullMessage.ToString()).CompletionTokens;
+
+                oldchatHistory.Add(
+                    new()
+                    {
+                        Role = AuthorRole.Assistant,
+                        Items = [
+                            new TextContent{ Text = fullMessage.ToString() },
+                            ],
+                        ModelId = chatCompletion.GetModelId(),
+                        Metadata = new Dictionary<string, object?>
+                        {
+                            { "TokenConsumed", completionToken},
+                            { "CreatedOn", DateTime.UtcNow.ToString() }
+                        }.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
+                    }
+                );
+
+                //oldchatHistory.AddAssistantMessage(fullMessage.ToString());
 
                 existingChatHistory.ChatHistoryJson = JsonSerializer.Serialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(oldchatHistory);
                 existingChatHistory.CreatedOn = DateTime.UtcNow;
+                existingChatHistory.NetTokenConsumption = existingChatHistory.NetTokenConsumption + completionToken;
                 await _dbContext.SaveChangesAsync();
                 await _responseStream.ClearChatTitles(userId);
                 await _userService.GetChatTitlesForUser(userId);
@@ -158,8 +204,23 @@ namespace genai.backend.api.Services
                 var promptTemplateFactory = new KernelPromptTemplateFactory();
                 var systemMessage = await promptTemplateFactory.Create(new PromptTemplateConfig(promptTemplate)).RenderAsync(chatKernel);
                 var newChatHistory = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory(systemMessage);
-                newChatHistory.AddMessage(AuthorRole.User, userInput);
-                var llmresponse = chatCompletion.GetStreamingChatMessageContentsAsync(newChatHistory, new OpenAIPromptExecutionSettings { MaxTokens = 4096, Temperature = 0.001 });
+                //newChatHistory.AddMessage(AuthorRole.User, userInput);
+                newChatHistory.Add(
+                    new()
+                    {
+                        Role = AuthorRole.User,
+                        Items = [
+                            new TextContent{ Text = userInput },
+                            ],
+                        ModelId = chatCompletion.GetModelId(),
+                        Metadata = new Dictionary<string, object?>
+                        {
+                            { "TokenConsumed", TokenCalculator(chatCompletion.GetModelId(), userInput, null).PromptTokens },
+                            { "CreatedOn", DateTime.UtcNow.ToString() }
+                        }.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
+                    }
+                );
+                var llmresponse = chatCompletion.GetStreamingChatMessageContentsAsync(newChatHistory, new OpenAIPromptExecutionSettings { MaxTokens = 4096, Temperature = 0.001});
                 var fullMessage = new StringBuilder();
                 //await _responseStream.BeginStream(userId);
                 await foreach (var chatUpdate in llmresponse)
@@ -172,7 +233,23 @@ namespace genai.backend.api.Services
                     }
                 }
                 await _responseStream.EndStream(userId);
-                newChatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
+                //newChatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
+                var completionToken = TokenCalculator(chatCompletion.GetModelId(), null, fullMessage.ToString()).CompletionTokens;
+                newChatHistory.Add(
+                    new()
+                    {
+                        Role = AuthorRole.Assistant,
+                        Items = [
+                            new TextContent{ Text = fullMessage.ToString() },
+                            ],
+                        ModelId = chatCompletion.GetModelId(),
+                        Metadata = new Dictionary<string, object?>
+                        {
+                            { "TokenConsumed", completionToken },
+                            { "CreatedOn", DateTime.UtcNow.ToString() }
+                        }.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
+                    }
+                );
 
                 var updatedJsonChatHistory = JsonSerializer.Serialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(newChatHistory);
                 var newTitle = await NewChatTitle(chatKernel, newChatHistory.ElementAt(1).Content.ToString());
@@ -182,7 +259,8 @@ namespace genai.backend.api.Services
                     ChatId = newChatId,
                     ChatTitle = newTitle,
                     ChatHistoryJson = updatedJsonChatHistory,
-                    CreatedOn = DateTime.UtcNow
+                    CreatedOn = DateTime.UtcNow,
+                    NetTokenConsumption = completionToken
                 };
                 _dbContext.ChatHistory.Add(dbchatHistory);
                 await _dbContext.SaveChangesAsync();
@@ -255,7 +333,35 @@ namespace genai.backend.api.Services
 
             return title;
         }
-        
+        private (int? PromptTokens, int? CompletionTokens) TokenCalculator(string ModelId, string prompt = null, string answer = null)
+        {
+            try
+            {
+                var encodingForModel = ModelToEncoder.For(ModelId);
+                if (encodingForModel == null) return (PromptTokens: null, CompletionTokens: null);
+
+                int? promptTokens = null;
+                int? completionTokens = null;
+
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    promptTokens = encodingForModel.CountTokens(prompt);
+                }
+
+                if (!string.IsNullOrEmpty(answer))
+                {
+                    completionTokens = encodingForModel.CountTokens(answer);
+                }
+
+                return (PromptTokens: promptTokens, CompletionTokens: completionTokens);
+            }
+            catch (Exception exception)
+            {
+                // log exception
+                return (PromptTokens: null, CompletionTokens: null);
+            }
+        }
+
     }
 }
 

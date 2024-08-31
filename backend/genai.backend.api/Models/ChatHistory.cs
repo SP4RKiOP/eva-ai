@@ -10,6 +10,7 @@ namespace genai.backend.api.Models
         public string ChatTitle { get; set; }
         public string ChatHistoryJson { get; set; }
         public DateTime CreatedOn { get; set; }
+        public int? NetTokenConsumption { get; set; }
         public User User { get; set; }  // Navigation property
     }
 }

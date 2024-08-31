@@ -15,7 +15,7 @@ export const authOptions: NextAuthOptions = {
           lastName: profile.family_name ?? '',
           partner: "google",
         };
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        // process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
         // Send userData to your API endpoint
         await fetch(process.env.NEXT_PUBLIC_BLACKEND_API_URL+"/api/Users/UserId", {
@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
           lastName,
           partner: "github",
         };
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        // process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
         // Send userData to your API endpoint
         await fetch(process.env.NEXT_PUBLIC_BLACKEND_API_URL+"/api/Users/UserId", {
