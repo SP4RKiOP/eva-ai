@@ -60,7 +60,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                                         onFocus={() => setIsTyping(true)}
                                         onBlur={() => setIsTyping(text.trim().length > 0)}
                                         onKeyDown={handleKeyDown}
-                                    className="w-full resize-none outline-none bg-transparent dark:bg-transparent py-[10px] md:py-3 pl-3 md:pl-4 placeholder-black/60 dark:placeholder-white/60"
+                                    className="w-full resize-none outline-none bg-transparent dark:bg-transparent py-[10px] md:py-3 pl-3 md:pl-4 placeholder-black/60 dark:placeholder-white/60 text-base"
                                     style={{ maxHeight: '240px', overflowY: 'auto' }}
                                 />
                             </div>

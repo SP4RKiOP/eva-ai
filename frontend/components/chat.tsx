@@ -307,7 +307,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                                   <SkeletonLoader />
                                                               ) : (
                                                                   message.role === 'assistant' ? (<MemoizedReactMarkdown
-                                                                    className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 dark:text-white"
+                                                                    className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 dark:text-white text-base"
                                                                     remarkPlugins={[remarkGfm, remarkMath]}
                                                                     components={{
                                                                       p({ children }) {
@@ -348,7 +348,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                                     {message.text}
                                                                   </MemoizedReactMarkdown>
                                                                   ) : (
-                                                                    <div className="text-left whitespace-pre-wrap">{message.text}</div>
+                                                                    <div className="text-left whitespace-pre-wrap text-base">{message.text}</div>
                                                                   )
                                                               )}
                                                             </div>
