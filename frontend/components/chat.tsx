@@ -151,10 +151,10 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           .then((data) => {
             if (data && data.length > 0) {
               const newMessages: Message[] = data
-                .filter(
-                  (chat: any) =>
-                    chat.Role.Label === "assistant" || chat.Role.Label === "user"
-                )
+                .filter((chat: any) => {
+                  // Check for valid roles and non-empty messages
+                  return (chat.Role.Label === "assistant" || chat.Role.Label === "user") && chat.Items[0].Text.trim() !== "";
+                })
                 .map((chat: any) => ({
                   role: chat.Role.Label,
                   text: chat.Items[0].Text,
@@ -299,7 +299,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                         </div>
                                                     </div>
                                                     <div className='relative overflow-hidden flex w-full flex-col'>
-                                                        <div className="font-semibold select-none capitalize">
+                                                        <div className="font-bold select-none capitalize">
                                                           {message.role==='user'? (fName):('ChatIQ')}</div>
                                                           <div className={`flex ${message.role === 'user' ? 'place-content-end' : ''}`}>
                                                             <div className={`min-h-[20px] flex flex-col mt-1 overflow-x-auto ${message.role === 'user' ? 'bg-gray-300 dark:bg-[#2f2f2f] dark:text-white rounded-xl px-5 py-1.5 w-fit' : ''}`}>
