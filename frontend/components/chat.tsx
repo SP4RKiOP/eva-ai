@@ -133,6 +133,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     };
 
     useEffect(() => {
+      window.addEventListener("visibilitychange", () => chatService.reconnect());
       if((session as any)?.partner){
         window.localStorage.setItem('partner', (session as any)?.partner);
       }

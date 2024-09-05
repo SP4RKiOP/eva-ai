@@ -48,24 +48,24 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
                     {messagesLength === 0 && <SampleInput /> }
                     <div className="flex w-full items-center">
                         <div className={`flex w-full justify-between items-stretch dark:text-white rounded-[26px] bg-[#f4f4f4] dark:bg-[--main-surface-secondary]`}>
-                            <div className=" grow">
+                            <div className="flex grow items-center">
                                 <textarea
                                         ref={textareaRef}
                                         id="prompt-textarea"
                                         tabIndex={0}
                                         rows={1}
-                                        placeholder="Message ChatIQ…"
+                                        placeholder="Type your message here"
                                         value={text}
                                         onChange={handleChange}
                                         onFocus={() => setIsTyping(true)}
                                         onBlur={() => setIsTyping(text.trim().length > 0)}
                                         onKeyDown={handleKeyDown}
-                                    className="w-full resize-none outline-none bg-transparent dark:bg-transparent py-[10px] md:py-3 pl-3 md:pl-4 placeholder-black/60 dark:placeholder-white/60 text-base"
+                                    className="w-full resize-none outline-none bg-transparent dark:bg-transparent py-[10px] md:py-2 pl-3 md:pl-4 placeholder-black/60 dark:placeholder-white/60 text-base"
                                     style={{ maxHeight: '240px', overflowY: 'auto' }}
                                 />
                             </div>
                             <button type="submit" disabled={!isTyping || text.trim().length === 0} 
-                            className={`self-end h-8 w-8 mr-2 md:mr-2.5 mb-2 md:mb-2.5 rounded-full  disabled:opacity-20 bg-black dark:bg-white`}>
+                            className={`self-end h-8 w-8 mr-2 md:mr-2.5 m-2 md:m-2.5 rounded-full  disabled:opacity-20 bg-black dark:bg-white`}>
                                 <span className="flex justify-center" data-state="closed">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white dark:text-black">
                                         <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>

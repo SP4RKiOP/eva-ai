@@ -4,17 +4,17 @@ import Provider from "./client-provider";
 import "./globals.css";
 import Chat from "@/components/chat";
 import { Toaster } from "@/components/ui/toaster";
-import { Inter as FontSans } from "next/font/google"
+import { Inter } from "next/font/google"
 import { cn } from "@/lib/utils"
 
 export const metadata = {
   title: "ChatIQ",
   description: "Made by Abhishek Sinha",
+  content:"width=device-width, initial-scale=1.0"
 };
 
-const fontSans = FontSans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
 })
 
 export default async function RootLayout({children,
@@ -24,12 +24,9 @@ export default async function RootLayout({children,
 
   return (
     <html lang="en">
-      <body className={cn(
-          "font-sans antialiased",
-          fontSans.variable
-        )}>
+      <body className={inter.className}>
         <Provider session={session}>
-          <main className="h-screen">{children}</main>
+          <main className="h-dvh">{children}</main>
           <Toaster />
           </Provider>
       </body>

@@ -115,7 +115,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
         getuId_token();
       }else if (res.status === 204) {
         toast({
-          description: "Chat title updated successfully",
+          description: "Chat removed",
         })
         setChatTitles(chatTitles.filter((title) => title.ChatId !== chatId));
         window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId).map((title) => JSON.stringify(title))));

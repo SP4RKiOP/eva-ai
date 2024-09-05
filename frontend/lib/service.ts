@@ -61,7 +61,8 @@ export class ChatService {
     //start connection
     public async start(){
         try {
-            await this.connection.start()
+            if (this.connection.state === signalR.HubConnectionState.Disconnected) {
+              await this.connection.start()
             .then(() => {
                 console.log("SignalR Connected.");
                 this.HubConnectionState$.next("Connected"); // Set the HubConnectionState to "Connected";
@@ -71,8 +72,16 @@ export class ChatService {
                   console.log("User joined successfully.", window.localStorage.getItem('userId'));
                 }
             });
+            }
         } catch (err) {
             console.log(err);
+        }
+    }
+    //reconnect
+    public async reconnect(){
+        if (this.connection.state === signalR.HubConnectionState.Disconnected) {
+          await this.stop();
+          await this.start();
         }
     }
 
