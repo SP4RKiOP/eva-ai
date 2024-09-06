@@ -3,7 +3,7 @@ import { signIn, useSession } from "next-auth/react";
 import {
   IconGitHub,
   IconGoogle,
-  IconChatIQ
+  IconEva
 } from '@/components/ui/icons'
 import { redirect } from "next/navigation";
 
@@ -17,16 +17,16 @@ export default function Login() {
     <div className="flex items-center justify-center h-full">
       <div className="flex flex-col justify-evenly max-md:w-80 space-y-8 p-8 bg-neutral-600 text-white dark:bg-white dark:text-[#333333] rounded-xl shadow-lg">
         <div className="flex flex-row items-center justify-start">
-          <IconChatIQ className="md:h-20 md:w-20 h-10 w-10" />
-          <h2 className="ml-2 text-4xl md:text-7xl font-bold" style={{ fontFamily: 'Lato' }}>ChatIQ</h2>
+          <IconEva className="md:h-20 md:w-20 h-10 w-10" />
+          <h2 className="ml-2 text-4xl md:text-7xl font-bold" style={{ fontFamily: 'Lato' }}>Eva</h2>
         </div>
         {/* <div className="max-w-lg mx-auto p-6 text-center">
-          <h2 className="text-2xl font-bold">Welcome to <span className="font-extrabold">ChatIQ</span></h2>
+          <h2 className="text-2xl font-bold">Welcome to <span className="font-extrabold">Eva</span></h2>
           
           <p className="italic mt-4">Your Personal Assistant in Every Conversation</p>
           
           <p className="mt-6 text-gray-700">
-            Sign in to unlock a smarter, more personalized experience. Whether you're here to ask questions, get recommendations, or simply chat, <span className="font-bold">ChatIQ</span> is ready to assist you.
+            Sign in to unlock a smarter, more personalized experience. Whether you're here to ask questions, get recommendations, or simply chat, <span className="font-bold">Eva</span> is ready to assist you.
           </p>
           
           <h3 className="text-xl font-semibold mt-8">Why Sign In?</h3>

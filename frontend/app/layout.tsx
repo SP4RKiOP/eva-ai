@@ -8,7 +8,7 @@ import { Inter } from "next/font/google"
 import { cn } from "@/lib/utils"
 
 export const metadata = {
-  title: "ChatIQ",
+  title: "Eva.AI",
   description: "Made by Abhishek Sinha",
   content:"width=device-width, initial-scale=1.0"
 };
@@ -26,7 +26,7 @@ export default async function RootLayout({children,
     <html lang="en">
       <body className={inter.className}>
         <Provider session={session}>
-          <main className="h-dvh">{children}</main>
+          <main className="h-svh">{children}</main>
           <Toaster />
           </Provider>
       </body>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useVisibility } from './VisibilityContext';
-import { IconChatIQ } from '@/components/ui/icons';
+import { IconEva } from '@/components/ui/icons';
 import { ChatService } from '@/lib/service';
 import { Menu, MenuButton, MenuItem, MenuItems, Transition, Portal } from '@headlessui/react';
 import { signOut } from 'next-auth/react';
@@ -216,7 +216,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
           >
             <div className="h-7 w-7">
               <div className="relative flex h-full items-center justify-center rounded-full text-gray-950">
-                <IconChatIQ className="mx-auto h-10 w-10" />
+                <IconEva className="mx-auto h-10 w-10" />
               </div>
             </div>
             <span className="group-hover:text-gray-950 dark:group-hover:text-gray-200">New Chat</span>

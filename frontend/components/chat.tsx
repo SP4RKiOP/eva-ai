@@ -71,10 +71,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                 isPlaceholder: true
             };
             setMessages((prevMessages) => [...prevMessages, placeholderMessage]);
-            if(chatService.HubConnectionState$.value!=="Connected") {
-              await chatService.start();
-              console.log("SignalR Reconnected.");
-            }
+            window.addEventListener("visibilitychange", async () => await chatService.reconnect());
             const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                 method: 'POST',
                 headers: {
@@ -133,7 +130,6 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     };
 
     useEffect(() => {
-      window.addEventListener("visibilitychange", () => chatService.reconnect());
       if((session as any)?.partner){
         window.localStorage.setItem('partner', (session as any)?.partner);
       }
@@ -293,7 +289,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                                     <div className="relative flex">
                                                                     {message.role === 'user' ? 
                                                                     (<img alt="User" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="rounded-sm" style={{color: 'transparent'}} src={uImg}/>) 
-                                                                    : (<img className="mx-auto h-6 w-6 " src="/icon.svg" alt="ChatIQ" />)}
+                                                                    : (<img className="mx-auto h-6 w-6 " src="/icon.svg" alt="Eva" />)}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -301,7 +297,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                                     </div>
                                                     <div className='relative overflow-hidden flex w-full flex-col'>
                                                         <div className="font-bold select-none capitalize">
-                                                          {message.role==='user'? (fName):('ChatIQ')}</div>
+                                                          {message.role==='user'? (fName):('Eva')}</div>
                                                           <div className={`flex ${message.role === 'user' ? 'place-content-end' : ''}`}>
                                                             <div className={`min-h-[20px] flex flex-col mt-1 overflow-x-auto ${message.role === 'user' ? 'bg-gray-300 dark:bg-[#2f2f2f] dark:text-white rounded-xl px-5 py-1.5 w-fit' : ''}`}>
                                                               {message.isPlaceholder ? (

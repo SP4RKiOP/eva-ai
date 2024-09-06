@@ -82,6 +82,7 @@ export class ChatService {
         if (this.connection.state === signalR.HubConnectionState.Disconnected) {
           await this.stop();
           await this.start();
+          console.log("Reconnected successfully.");
         }
     }
 

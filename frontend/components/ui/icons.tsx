@@ -88,7 +88,7 @@ function IconNextChat({
   )
 }
 
-function IconChatIQ({ className, ...props }: React.ComponentProps<'svg'>) {
+function IconEva({ className, ...props }: React.ComponentProps<'svg'>) {
   return (
     <svg
       viewBox="0 0 101.67 100"
@@ -96,7 +96,7 @@ function IconChatIQ({ className, ...props }: React.ComponentProps<'svg'>) {
       className={cn('', className)}
       {...props}
     >
-      <title>ChatIQ</title>
+      <title>Eva</title>
       <defs>
         <linearGradient id="a9560d8af-ec7b-4a22-a933-7f7df8186c41" x1="-.11" y1="-12.79" x2="58.73" y2="19.53" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#1aa8fd"/>
@@ -499,7 +499,7 @@ function IconChevronUpDown({
 export {
   IconEdit,
   IconNextChat,
-  IconChatIQ,
+  IconEva,
   IconVercel,
   IconGitHub,
   IconGoogle,
