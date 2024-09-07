@@ -1,4 +1,4 @@
-import React, { useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState} from 'react';
 import Input from './input';
 import ChatHistory from './chat-history';
 import Sidebar from './sidebar';
@@ -18,6 +18,7 @@ interface ChatProps {
     lName: string;
     uMail: string;
     uImg: string;
+    partner: string;
     chatService: ChatService;
 }
 
@@ -28,7 +29,7 @@ interface Message {
 }
 
 
-const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uImg}) => {
+const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uImg, partner}) => {
     const { data: session, status } = useSession();
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -38,7 +39,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         emailId: uMail,
         firstName: fName,
         lastName: lName,
-        partner: (session as any)?.partner || window.localStorage.getItem('partner'),
+        partner: partner,
       };
         const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
           method: "POST",
@@ -56,7 +57,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             return response.text();
           })
     };
-    const handleMessageSubmit = async (text: string) => {
+    const handleMessageSubmit = useCallback(async (text: string) => {
         try {
             // Add user's input text as a message in the current chat
             const userMessage: Message = {
@@ -72,7 +73,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             };
             setMessages((prevMessages) => [...prevMessages, placeholderMessage]);
             window.addEventListener("visibilitychange", async () => await chatService.reconnect());
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
+            var response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,6 +88,19 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             });
             if (response.status == 401 || !response.ok) {
                 getuId_token();
+                response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+                  },
+                  body: JSON.stringify({
+                      userId: userId,
+                      modelId: chatService.selectedModelId$.value,
+                      userInput: text,
+                      chatId: currentChatId
+                  })
+              });
             }
             const newChatId = await response.text();
             if(newChatId!=null && newChatId.length!= 0) {
@@ -96,7 +110,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         } catch (error) {
             console.error('Error:', error);
         }
-    };
+    }, [userId, currentChatId, chatService, getuId_token]);
     const SkeletonLoader = () => (
       
         <div className="mt-1 flex flex-col space-y-2 animate-pulse w-fit md:w-[calc(100%-2rem)]">
@@ -130,13 +144,10 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     };
 
     useEffect(() => {
-      if((session as any)?.partner){
-        window.localStorage.setItem('partner', (session as any)?.partner);
-      }
     // Fetch latest chat history
     if (currentChatId) {
       if(messages.length==0) {
-        fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic/convhistory/${currentChatId}`, {
+        fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversation/${currentChatId}`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
@@ -168,7 +179,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         emailId: uMail,
         firstName: fName,
         lastName: lName,
-        partner: (session as any)?.partner || window.localStorage.getItem('partner'),
+        partner: partner,
       };
       // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
       // Send userData to your API endpoint
@@ -188,22 +199,8 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           return response.text();
         })
         .then(async (data) => {
-          console.log("User ID on chat:", data);
-          if(chatService.HubConnectionState$.value=="Connected" && !chatService.roomJoined$.value) {
-            chatService.joinChat(data as string);
-          }
           window.localStorage.setItem('userId', data as string);
-          fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/StreamUserData`, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
-            },
-          })
-          .then( (response) => {
-            if (response.ok) {
-              setTimeout(() => {setUserId(data as string)}, 1000);
-            }
-          })
+          setUserId(data as string);
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -211,6 +208,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     }else {
       setUserId(window.localStorage.getItem('userId') as string);
     }
+    
     if(userId){
       if(chatService.HubConnectionState$.value=="Connected" && !chatService.roomJoined$.value) {
         chatService.joinChat(userId);
@@ -262,19 +260,19 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     return () => {
       subscription.unsubscribe();
     };
-  }, [userId, currentChatId]);
+  }, [chatService, currentChatId, userId]);
 
     
 
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
-                <ChatHistory service={chatService} firstName={fName} lastName={lName} userImage={uImg} uMail={uMail} session={session} chatId={currentChatId} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
+                <ChatHistory firstName={fName} lastName={lName} userImage={uImg} uMail={uMail} partner={partner} chatId={currentChatId} chatService={chatService} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
                 <div className="relative flex-1 flex-col overflow-hidden">
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
                         <div className="flex h-screen flex-col">
-                            <HeaderMobile service={chatService} onNewChatClick={() => handleNewChat()}/><HeaderDesktop service={chatService}/>
+                            <HeaderMobile service={chatService} onNewChatClick={() => handleNewChat()} getuId_token={getuId_token}/><HeaderDesktop service={chatService} getuId_token={getuId_token}/>
                             <div className='flex flex-col-reverse h-full overflow-y-auto'>
                                 <div className="translateZ(0px)">
                                     {messages.length === 0 ? ( <Greet />) : 

@@ -133,6 +133,24 @@
   z-index: 50;
   width: 260px;
 }
+.chat-title-enter {
+  opacity: 0.01;
+  transform: translateY(-20px);
+}
+.chat-title-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms, transform 500ms;
+}
+.chat-title-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+.chat-title-exit-active {
+  opacity: 0.01;
+  transform: translateY(-20px);
+  transition: opacity 500ms, transform 500ms;
+}
 @media (prefers-color-scheme: dark) {
   body {
     color: white;

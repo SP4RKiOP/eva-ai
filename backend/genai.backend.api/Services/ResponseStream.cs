@@ -23,7 +23,7 @@ namespace genai.backend.api.Services
         {
             await _hubContext.Clients.Groups(id).SendAsync("EndStream", string.Empty);
         }
-        public async Task ChatTitles(string id, string response)
+        public async Task Conversations(string id, string response)
         {
             await _hubContext.Clients.Groups(id).SendAsync("ChatTitles", response);
         }
@@ -31,7 +31,7 @@ namespace genai.backend.api.Services
         {
             await _hubContext.Clients.Groups(id).SendAsync("AvailableModels", response);
         }
-        public async Task ClearChatTitles(string id)
+        public async Task ClearConversations(string id)
         {
             await _hubContext.Clients.Groups(id).SendAsync("ClearChatTitles", string.Empty);
         }

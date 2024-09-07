@@ -10,12 +10,14 @@ using Newtonsoft.Json;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Web;
+using MySqlX.XDevAPI;
 
 namespace genai.backend.api.Plugins
 {
     public class GooglePlugin
     {
         public bool cacheResponses = true; // Indicates if a cache of all search results should be saved
+        public WebClient client = new WebClient();
         public Dictionary<string, (DateTime timestamp, RootResult[] results)> cache = new Dictionary<string, (DateTime, RootResult[])>(); // Cache dictionary containing all results cached
 
         [KernelFunction("normal_google_web_search")]
@@ -38,7 +40,8 @@ namespace genai.backend.api.Plugins
 
             try
             {
-                string response = new WebClient().DownloadString(queryUrl);
+                client.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+                string response = client.DownloadString(queryUrl);
                 var doc = new HtmlAgilityPack.HtmlDocument();
                 doc.LoadHtml(response);
                 string headingResult = string.Empty;
@@ -90,7 +93,7 @@ namespace genai.backend.api.Plugins
             }
             catch (Exception ex)
             {
-                // handle the exception here
+                Console.WriteLine("Failed to load Google search results: " + ex.Message);
                 return "Failed to load Google search results: " + ex.Message;
             }
 

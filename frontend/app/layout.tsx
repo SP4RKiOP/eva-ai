@@ -18,7 +18,6 @@ const inter = Inter({
 export default async function RootLayout({children,
 }: Readonly<{children: React.ReactNode;}>) {
   const session = await getServerSession(authOptions);
-  // console.log here to check the session
 
   return (
     <html lang="en">

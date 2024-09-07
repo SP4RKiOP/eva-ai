@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useVisibility } from './VisibilityContext';
 import { ChatService } from '@/lib/service';
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react';
@@ -6,56 +6,72 @@ import { ChevronDownIcon } from '@heroicons/react/20/solid';
 
 interface Model {
   id: number;
-  modelName: string;
+  name: string;
   lastSelected: boolean;
 }
 
 interface HeaderProps {
   service: ChatService;
   onNewChatClick: () => void;
+  getuId_token: () => Promise<void>;
 }
 
-const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick }) => {
+const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick, getuId_token}) => {
   const { toggleChatHistoryVisibility } = useVisibility();
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
-
+  const fetchedRef = useRef(false);
+  
   useEffect(() => {
+    const getModels = async () => {
+      try{
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/models`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+          },
+        });
+        if (response.status == 401) {
+          getuId_token();
+          return getModels();
+        }
+        const data = await response.text();
+        if(data!=null && data.length!= 0) {
+          const models = JSON.parse(data);
+          models.forEach((model: Model) => model.lastSelected = false);
+          setModels(models);
+          window.localStorage.setItem('models', JSON.stringify(models));
+          setSelectedModel(models[0].name);
+          service.selectedModelId$.next(models[0].id);
+        }
+      }
+      catch(error) {
+        console.error('Error:', error);
+      }
+    };
     // Load models from session storage if available
     const savedModels = window.localStorage.getItem('models');
-    if (savedModels) {
+    if (savedModels!==null) {
       const parsedModels = JSON.parse(savedModels);
       setModels(parsedModels);
       if (parsedModels.length > 0) {
         //check if any model lastSelected is true
         const lastSelectedModel = parsedModels.find((model: Model) => model.lastSelected === true);
         if (lastSelectedModel) {
-          setSelectedModel(lastSelectedModel.modelName);
+          setSelectedModel(lastSelectedModel.name);
           service.selectedModelId$.next(lastSelectedModel.id);
         } else {
-          setSelectedModel(parsedModels[0].modelName);
+          setSelectedModel(parsedModels[0].name);
           service.selectedModelId$.next(parsedModels[0].id);
         }
       }
     }
-  
-    // Subscribe to availableModels changes
-    const subscription = service.availableModels$.subscribe((models) => {
-      if (models && models.length > 0) {
-        // set lastSelected to false by default
-        models.forEach((model: Model) => model.lastSelected = false);
-        setModels(models);
-        window.localStorage.setItem('models', JSON.stringify(models));
-  
-        // Set the first model as the selected model if none is selected
-        setSelectedModel(models[0].modelName);
-        service.selectedModelId$.next(models[0].id);
-      }
-    });
-  
-    // Cleanup subscription on component unmount
-    return () => subscription.unsubscribe();
-  }, [service]);
+    else if (!fetchedRef.current) {
+      getModels();
+      fetchedRef.current = true;
+  }
+  }, []);
   
 
   const handleModelChange = (modelName: string, id: number, lastSelected: boolean) => {
@@ -115,10 +131,10 @@ const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick }) => {
                         <MenuItem key={model.id} >
                             {({ focus }) => (
                                 <button
-                                    onClick={() => handleModelChange(model.modelName, model.id, true)}
+                                    onClick={() => handleModelChange(model.name, model.id, true)}
                                     className={`rounded-xl px-4 w-full py-2 text-sm text-left ${focus? 'bg-neutral-400 dark:bg-neutral-800' : ''}`}
                                 >
-                                    {model.modelName}
+                                    {model.name}
                                 </button>
                             )}
                         </MenuItem>

@@ -41,8 +41,8 @@ namespace genai.backend.api.Controllers
                 return BadRequest(ex.Message);
             }
         }
-        [HttpGet("StreamUserData")]
-        public async Task<IActionResult> StreamUserData()
+        [HttpGet("conversations")]
+        public async Task<IActionResult> GetConversations()
         {
             try
             {
@@ -57,9 +57,32 @@ namespace genai.backend.api.Controllers
                 var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
 
                 var userId = userIdClaim.Value;
-                await _userService.GetChatTitlesForUser(userId);
-                await _userService.GetSubscribedModels(userId: userId);
-                return Ok();
+                var conversations = await _userService.Conversations(userId);
+                return Ok(conversations); // Return the list of conversations;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpGet("models")]
+        public async Task<IActionResult> GetModels()
+        {
+            try
+            {
+                var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
+
+                var token = authHeader.Substring("Bearer ".Length).Trim();
+
+                // Decode the JWT token to get the userId
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+
+                var userId = userIdClaim.Value;
+                var models = await _userService.GetSubscribedModels(userId: userId);
+                return Ok(models); // Return the list of conversations;
             }
             catch (Exception ex)
             {
@@ -67,8 +90,14 @@ namespace genai.backend.api.Controllers
             }
         }
 
-        [HttpPatch("chat/{chatId}")]
-        public async Task<IActionResult> RenameOrDeleteChatTitle(string chatId, [FromQuery] string? title)
+        [HttpGet("conversation/{chatId}")]
+        public async Task<IActionResult> GetConvHistory(string chatId)
+        {
+            var chatJson = await _semanticService.GetConversation(chatId);
+            return Ok(chatJson);
+        }
+        [HttpPatch("conversation/{chatId}")]
+        public async Task<IActionResult> RenameOrDeleteChatTitle(string chatId, [FromQuery] string? title, [FromBody] DeleteRequest? deleteRequest)
         {
             var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
 
@@ -83,24 +112,36 @@ namespace genai.backend.api.Controllers
             var userId = userIdClaim.Value;
             if (string.IsNullOrEmpty(title))
             {
-                // If the title is null or empty, delete the chat title
-                var result = await _userService.DeleteChatTitleAsync(userId, chatId);
-                if (result)
+                // If the title is null or empty, check if delete request is present
+                if (deleteRequest != null && deleteRequest.Delete)
                 {
-                    return NoContent(); // Successfully deleted
+                    var result = await _userService.DeleteConversation(userId, chatId);
+                    if (result)
+                    {
+                        return NoContent(); // Successfully deleted
+                    }
+                    return NotFound("Chat title not found.");
                 }
-                return NotFound("Chat title not found.");
+                else
+                {
+                    return BadRequest("Invalid request body. 'delete' property not found or empty.");
+                }
             }
             else
             {
                 // If the title is provided, rename the chat title
-                var result = await _userService.RenameChatTitleAsync(userId, chatId, title);
+                var result = await _userService.RenameConversation(userId, chatId, title);
                 if (result)
                 {
                     return NoContent(); // Successfully renamed
                 }
                 return NotFound("Chat title not found.");
             }
+        }
+
+        public class DeleteRequest
+        {
+            public bool Delete { get; set; }
         }
 
         public class CreateUserRequest

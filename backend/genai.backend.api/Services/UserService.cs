@@ -1,6 +1,7 @@
 ﻿using genai.backend.api.Data;
 using genai.backend.api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -17,11 +18,13 @@ namespace genai.backend.api.Services
         private readonly IConfiguration? _configuration;
         private readonly ApplicationDbContext _dbContext;
         private readonly ResponseStream _responseStream;
-        public UserService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream)
+        private readonly IMemoryCache _cache;
+        public UserService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream, IMemoryCache cache)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             _responseStream = responseStream;
+            _cache = cache;
         }
         public async Task<Object> GetCreateUser(string emailId, string? firstName, string? lastName, string partner)
         {
@@ -69,38 +72,51 @@ namespace genai.backend.api.Services
 
             return new { UserId = user.UserId, Token = tokenString };
         }
-        public async Task GetChatTitlesForUser(string userId)
+        public async Task<Object> Conversations(string userId)
         {
             try
             {
-                await _responseStream.ClearChatTitles(userId);
                 var chatTitles = await _dbContext.ChatHistory
                     .Where(ch => ch.UserId == userId)
                     .Select(ch => new 
                     { 
-                        ch.ChatId, 
-                        ch.ChatTitle, 
-                        ch.CreatedOn 
+                        id = ch.ChatId,
+                        title = ch.ChatTitle, 
+                        lastActivity = ch.CreatedOn
                     })
                     .ToListAsync();
                 if (chatTitles != null && chatTitles.Count > 0)
                 {
-                    foreach (var chatTitle in chatTitles)
-                    {
-                        await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(chatTitle));
-                    }
+                    return JsonSerializer.Serialize(chatTitles);
                 }
-
+                return new { };
             }
             catch (Exception ex)
             {
                 // Log or
                 Console.WriteLine(ex.ToString());
-                // Handle exceptions
-                await _responseStream.ChatTitles(userId, JsonSerializer.Serialize(new { ChatId = userId, ChatTitle = "No Chat Found", CreatedOn = DateTime.Now }));
+                return new { };
             }
         }
-        public async Task<bool> RenameChatTitleAsync(string userId, string chatId, string newTitle)
+        public async Task<Object> GetSubscribedModels(string userId)
+        {
+            var models = await _dbContext.UserSubscriptions
+            .Include(u => u.AvailableModel)
+            .Where(u => u.UserId == userId)
+            .Select(m => new
+            {
+                id = m.ModelId,
+                name = m.AvailableModel.DeploymentName.ToUpper()
+            })
+            .ToListAsync();
+
+            if (models != null)
+            {
+                return JsonSerializer.Serialize(models.ToArray());
+            }
+            return new { };
+        }
+        public async Task<bool> RenameConversation(string userId, string chatId, string newTitle)
         {
             var chat = await _dbContext.ChatHistory
                 .FirstOrDefaultAsync(ch => ch.UserId == userId && ch.ChatId == chatId);
@@ -115,7 +131,7 @@ namespace genai.backend.api.Services
             return true;
         }
 
-        public async Task<bool> DeleteChatTitleAsync(string userId, string chatId)
+        public async Task<bool> DeleteConversation(string userId, string chatId)
         {
             var chat = await _dbContext.ChatHistory
                 .FirstOrDefaultAsync(ch => ch.UserId == userId && ch.ChatId == chatId);
@@ -128,23 +144,6 @@ namespace genai.backend.api.Services
             _dbContext.ChatHistory.Remove(chat);
             await _dbContext.SaveChangesAsync();
             return true;
-        }
-        public async Task GetSubscribedModels(string userId)
-        {
-            var models = await _dbContext.UserSubscriptions
-            .Include(u => u.AvailableModel)
-            .Where(u => u.UserId == userId)
-            .Select(m => new
-            {
-                Id = m.ModelId,
-                ModelName = m.AvailableModel.DeploymentName.ToUpper()
-            })
-            .ToListAsync();
-
-            if (models != null)
-            {
-                await _responseStream.AvailableModels(userId, models.ToArray());
-            }
         }
     }
 }

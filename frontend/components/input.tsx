@@ -16,9 +16,14 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
             // Adjust the height of the textarea based on its scrollHeight
             textareaRef.current.style.height = 'auto'; // Reset the height
             textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+            
         }
     }, [text]); // Re-run this effect whenever the text changes
-
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.focus(); // Focus the textarea when the component mounts
+        }
+    }, []);
 
     const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newText = event.target.value;

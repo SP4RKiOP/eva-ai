@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useVisibility } from './VisibilityContext';
 import { IconEva } from '@/components/ui/icons';
-import { ChatService } from '@/lib/service';
 import { Menu, MenuButton, MenuItem, MenuItems, Transition, Portal } from '@headlessui/react';
 import { signOut } from 'next-auth/react';
 import { useToast } from "@/components/ui/use-toast"
@@ -27,10 +26,12 @@ import {
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ChatService } from '@/lib/service';
+import { TransitionGroup, CSSTransition } from 'react-transition-group';
 interface ChatTitle {
-  ChatId: string;
-  ChatTitle: string;
-  CreatedOn: Date;
+  id: string;
+  title: string;
+  lastActivity: string;
 }
 
 interface ChatHistoryProps {
@@ -38,26 +39,28 @@ interface ChatHistoryProps {
   firstName: string;
   lastName: string;
   userImage: string;
-  service: ChatService;
-  session: any;
+  partner: string;
   chatId: string | undefined;
+  chatService: ChatService;
   onNewChatClick: () => void;
   onOldChatClick: (iD?: string) => void;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, lastName, userImage, session, chatId, onNewChatClick, onOldChatClick }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, userImage, partner, chatId, chatService, onNewChatClick, onOldChatClick }) => {
   const { chatHistoryVisible } = useVisibility();
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
   const [isFetchingChatTitles, setIsFetchingChatTitles] = useState(true);
   const { toast } = useToast()
   const [title, setTitle] = useState("");
+  const fetchedRef = useRef(false);
+  const nodeRef = React.useRef(null);
   const getuId_token = async () => {
     const userData = {
       emailId: uMail,
       firstName: firstName,
       lastName: lastName,
-      partner: (session as any)?.partner || window.localStorage.getItem('partner'),
+      partner: partner,
     };
       const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
         method: "POST",
@@ -82,7 +85,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
   };
 
   const handleRename = (chatId: string, newTitle: string) => {
-    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/chat/${chatId}/?title=${newTitle}`, {
+    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversation/${chatId}/?title=${newTitle}`, {
       method: "PATCH",
       headers: {
         "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
@@ -94,22 +97,23 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
         toast({
           description: "Chat title updated successfully",
         })
-        chatTitles.map((title) => {
-          if (title.ChatId === chatId) {
-            title.ChatTitle = newTitle;
+        chatTitles.map((t) => {
+          if (t.id === chatId) {
+            t.title = newTitle;
           }
         })
         setChatTitles([...chatTitles]);
-        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.map((title) => JSON.stringify({ ...title }))));
     }
       })
   };
   const handleDelete = (chatId: string) => {
-    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/chat/${chatId}`, {
+    fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversation/${chatId}`, {
       method: "PATCH",
       headers: {
+        "Content-Type": "application/json",
         "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
       },
+      body: JSON.stringify({ delete: true }),
     }).then((res) => {
       if(res.status === 401) {
         getuId_token();
@@ -117,75 +121,60 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
         toast({
           description: "Chat removed",
         })
-        setChatTitles(chatTitles.filter((title) => title.ChatId !== chatId));
-        window.localStorage.setItem('chatTitles', JSON.stringify(chatTitles.filter((title) => title.ChatId !== chatId).map((title) => JSON.stringify(title))));
+        setChatTitles(chatTitles.filter((t) => t.id !== chatId));
     }})
   };
-
+  
   useEffect(() => {
-    const fetchAndStoreChatTitles = async () => {
-      setIsFetchingChatTitles(true);
-      const cachedTitles = window.localStorage.getItem('chatTitles');
-      let existingTitles: ChatTitle[] = [];
-
-      if (cachedTitles) {
-        // Parse the cached titles and update the state
-        existingTitles = JSON.parse(cachedTitles).map((title: string) => {
-          const parsedTitle = JSON.parse(title);
-          parsedTitle.CreatedOn = new Date(parsedTitle.CreatedOn);
-          return parsedTitle;
+    const getConversations = async () => {
+      try{
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversations`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+          },
         });
-      }
-
-      setChatTitles(existingTitles);
-      setIsFetchingChatTitles(false);
-
-      // Subscribe to the service for updates
-      const subscription = service.chatTitles$.subscribe((ttls) => {
-        if (ttls && ttls.length > 0) {
-          const newTitles = ttls.map((title: string) => {
-            const parsedTitle = JSON.parse(title);
-            parsedTitle.CreatedOn = new Date(parsedTitle.CreatedOn);
-            return parsedTitle;
-          });
-
-          // Merge new titles with existing titles
-          const combinedTitles = [...existingTitles, ...newTitles];
-
-          // Use a Map to remove duplicates and keep the most recent one
-          const uniqueTitlesMap = new Map<string, ChatTitle>();
-          combinedTitles.forEach((title) => {
-            if (!uniqueTitlesMap.has(title.ChatId) || uniqueTitlesMap.get(title.ChatId)!.CreatedOn < title.CreatedOn) {
-              uniqueTitlesMap.set(title.ChatId, title);
-            }
-          });
-
-          // Convert the Map back to an array
-          const uniqueTitles = Array.from(uniqueTitlesMap.values());
-
-          // Sort the titles by CreatedOn date
-          uniqueTitles.sort((a: ChatTitle, b: ChatTitle) => b.CreatedOn.getTime() - a.CreatedOn.getTime());
-
-          setChatTitles(uniqueTitles);
-          setIsFetchingChatTitles(false);
-          // Update the local storage with the merged and sorted data
-          window.localStorage.setItem('chatTitles', JSON.stringify(uniqueTitles.map((title) => JSON.stringify(title))));
-        } else {
-          if (!window.localStorage.getItem('chatTitles')) {
-            setChatTitles([]);
-            setIsFetchingChatTitles(false);
-          }
+        if (response.status == 401) {
+          getuId_token();
+          return getConversations();
         }
-      });
-
-      // Cleanup subscription on component unmount
-      return () => {
-        subscription.unsubscribe();
-      };
+        const data = await response.json();
+        if(data!=null && data.length!= 0) {
+          if (Object.keys(data).length === 0) {
+            // Handle empty JSON object
+            setChatTitles([]);
+          } else {
+            data.sort((a: ChatTitle, b: ChatTitle) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
+            setChatTitles(data);
+          }
+        } else {
+          // Handle empty response
+          setChatTitles([]);
+        }
+        setIsFetchingChatTitles(false);
+      }
+      catch(error) {
+        console.error('Error:', error);
+        setIsFetchingChatTitles(false);
+        setChatTitles([]);
+      }
     };
 
-    fetchAndStoreChatTitles();
-  }, [service]);
+    if (!fetchedRef.current) {
+      getConversations();
+      fetchedRef.current = true;
+    }
+
+    // Subscribe to the endStream$ observable
+    const subscription = chatService.endStream$.subscribe(() => {
+      setTimeout(() => {
+        getConversations();
+      }, 500);
+    });
+    // Cleanup subscription on component unmount
+    return () => subscription.unsubscribe();
+  }, [chatService]); 
 
   return (
     <div className={`w-80 inset-0 z-50 md:flex-shrink-0 md:overflow-x-hidden md:w-64 max-md:fixed ${chatHistoryVisible ? 'hidden md:block' : 'block md:hidden'}`}>
@@ -235,65 +224,74 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ service, uMail, firstName, la
             <div className={`grow gap-2 pt-8 pb-4 text-sm text-center`}>No Chats Found.<div className='pt-2'>Go Ahead with your first question</div></div>
           ) : (
             <div className="grow flex-col gap-2 pt-4 pb-4 text-sm overflow-y-auto">
-              {chatTitles.map((chatTitle) => (
-                <div key={chatTitle.ChatId} className={`relative pt-1 pb-1 overflow-x-hidden group`}>
-                  <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark ${chatTitle.ChatId == chatId ? 'skeleton' : ''}`}>
-                    <button
-                      className={`w-full h-full text-left group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip`}
-                      onClick={(e) => { e.preventDefault(); onOldChatClick(chatTitle.ChatId); if (window.innerWidth < 768) {toggleChatHistoryVisibility();}}}
-                    >{chatTitle.ChatTitle}</button>
-                  </div>
-                  {/* Dropdown menu for each chat title */}
-                  <div className={`absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 `}>
-                    <Dialog>
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger className="backdrop-blur-sm inline-flex justify-center w-full p-2 text-sm font-medium text-gray-800 dark:text-white rounded-r-lg focus:outline-none">
-                            <svg className="w-5 h-4 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 3">
-                              <path d="M2 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6.041 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM14 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
-                            </svg>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="rounded-2xl bg-neutral-300 dark:bg-[#212121]">
-                          <DialogTrigger asChild className="block w-full text-left text-sm">
-                            <DropdownMenuItem className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">Rename</DropdownMenuItem>
-                          </DialogTrigger>
-                          <DropdownMenuItem onClick={() => {handleDelete(chatTitle.ChatId)}}
-                                  className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <DialogContent className="max-w-[400px] md:max-w-[425px]">
-                        <DialogHeader className="max-md:text-left">
-                          <DialogTitle>Edit Chat Title</DialogTitle>
-                          <DialogDescription>
-                            Click save when you&apos;re done.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4 max-md:justify-start">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                              Title
-                            </Label>
-                            <Input
-                              id="name"
-                              defaultValue={chatTitle.ChatTitle}
-                              onChange={(e) => setTitle(e.target.value)} // Update state on input change
-                              className="col-span-3"
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <DialogClose asChild>
-                            <Button type="button" className="w-fit ml-auto" onClick={() => {handleRename(chatTitle.ChatId, title)}}>
-                              Save changes
-                            </Button>
-                          </DialogClose>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-              ))}
+              <TransitionGroup>
+                {chatTitles.map((chatTitle) => (
+                  <CSSTransition
+                  key={chatTitle.id}
+                  nodeRef={nodeRef}
+                  timeout={500}
+                  classNames="chat-title"
+                  >
+                    <div key={chatTitle.id} ref={nodeRef} className={`relative pt-1 pb-1 overflow-x-hidden group`}>
+                      <div className={`group flex items-center h-8 rounded-lg px-2 font-medium hover-light-dark ${chatTitle.id == chatId ? 'skeleton' : ''}`}>
+                        <button
+                          className={`w-full h-full text-left group-hover:text-gray-950 dark:group-hover:text-gray-200 truncate hover:text-clip`}
+                          onClick={(e) => { e.preventDefault(); onOldChatClick(chatTitle.id); if (window.innerWidth < 768) {toggleChatHistoryVisibility();}}}
+                        >{chatTitle.title}</button>
+                      </div>
+                      {/* Dropdown menu for each chat title */}
+                      <div className={`absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 `}>
+                        <Dialog>
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger className="backdrop-blur-sm inline-flex justify-center w-full p-2 text-sm font-medium text-gray-800 dark:text-white rounded-r-lg focus:outline-none">
+                                <svg className="w-5 h-4 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 3">
+                                  <path d="M2 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6.041 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM14 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
+                                </svg>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="rounded-2xl bg-neutral-300 dark:bg-[#212121]">
+                              <DialogTrigger asChild className="block w-full text-left text-sm">
+                                <DropdownMenuItem className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">Rename</DropdownMenuItem>
+                              </DialogTrigger>
+                              <DropdownMenuItem onClick={() => {handleDelete(chatTitle.id)}}
+                                      className="rounded-xl hover:bg-neutral-400 hover:dark:bg-neutral-600">
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <DialogContent className="max-w-[400px] md:max-w-[425px]">
+                            <DialogHeader className="max-md:text-left">
+                              <DialogTitle>Edit Chat Title</DialogTitle>
+                              <DialogDescription>
+                                Click save when you&apos;re done.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4 max-md:justify-start">
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">
+                                  Title
+                                </Label>
+                                <Input
+                                  id="name"
+                                  defaultValue={chatTitle.title}
+                                  onChange={(e) => setTitle(e.target.value)} // Update state on input change
+                                  className="col-span-3"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button type="button" className="w-fit ml-auto" onClick={() => {handleRename(chatTitle.id, title)}}>
+                                  Save changes
+                                </Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                  </CSSTransition>
+                ))}
+              </TransitionGroup>
             </div>
           )}
           <div className="w-full left-0 right-0 chat-history">
