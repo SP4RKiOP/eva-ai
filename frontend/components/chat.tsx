@@ -57,7 +57,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             return response.text();
           })
     };
-    const handleMessageSubmit = useCallback(async (text: string) => {
+    const handleMessageSubmit = async (text: string) => {
         try {
             // Add user's input text as a message in the current chat
             const userMessage: Message = {
@@ -110,7 +110,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         } catch (error) {
             console.error('Error:', error);
         }
-    }, [userId, currentChatId, chatService, getuId_token]);
+    };
     const SkeletonLoader = () => (
       
         <div className="mt-1 flex flex-col space-y-2 animate-pulse w-fit md:w-[calc(100%-2rem)]">

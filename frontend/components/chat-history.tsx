@@ -126,7 +126,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
   };
   
   useEffect(() => {
-    const getConversations = async () => {
+    const getConversations = async (): Promise<void> => {
       try{
         const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversations`, {
           method: "GET",

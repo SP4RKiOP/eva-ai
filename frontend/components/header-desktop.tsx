@@ -19,7 +19,7 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service, getuId_token}) => {
     const fetchedRef = useRef(false);
     
     useEffect(() => {
-      const getModels = async () => {
+      const getModels = async (): Promise<void> => {
         try{
           const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/models`, {
             method: "GET",
