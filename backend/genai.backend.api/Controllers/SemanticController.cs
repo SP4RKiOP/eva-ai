@@ -17,7 +17,7 @@ namespace genai.backend.api.Controllers
         }
         public class PostRequest
         {
-            public required int modelId { get; set; }
+            public required Guid modelId { get; set; }
             public required string userInput { get; set; }
             public string? chatId { get; set; } // Nullable
         }
@@ -41,7 +41,7 @@ namespace genai.backend.api.Controllers
                 // Check if the 'question' property exists in the request body
                 if (requestBody != null && !string.IsNullOrEmpty(requestBody.userInput))
                 {
-                    var ChatId = await _semanticService.semanticChatAsync(userId, requestBody.modelId, requestBody.userInput, requestBody.chatId);
+                    var ChatId = await _semanticService.semanticChatAsync(Guid.Parse(userId), requestBody.modelId, requestBody.userInput, requestBody.chatId);
 
                     if (ChatId != null)
                     {
@@ -64,7 +64,7 @@ namespace genai.backend.api.Controllers
             {
                 // Log the exception and return internal server error
                 Console.WriteLine($"Internal server error: {ex.Message}");
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, $"Internal server error.{ex.Message}");
             }
         }
 

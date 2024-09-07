@@ -1,4 +1,4 @@
-using genai.backend.api.Data;
+using Cassandra;
 using genai.backend.api.Hub;
 using genai.backend.api.Models;
 using genai.backend.api.Plugins;
@@ -9,9 +9,16 @@ using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+/*// Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseMySQL(builder.Configuration.GetConnectionString("OracleDb")));
+        options.UseMySQL(builder.Configuration.GetConnectionString("OracleDb")));*/
+
+// Configure Cassandra
+var cassandraCluster = Cluster.Builder()
+    .AddContactPoint(builder.Configuration.GetValue<string>("Cassandra:Host"))
+    .WithPort(builder.Configuration.GetValue<int>("Cassandra:Port"))
+    .Build();
+var session = cassandraCluster.Connect(builder.Configuration.GetValue<string>("Cassandra:Keyspace"));
 
 builder.Services.AddAuthentication(x =>
 {
@@ -63,6 +70,9 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+
+// Register Cassandra session with DI container
+builder.Services.AddSingleton<Cassandra.ISession>(session);
 builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

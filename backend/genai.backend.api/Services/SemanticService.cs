@@ -5,7 +5,6 @@ using Microsoft.SemanticKernel;
 using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
-using genai.backend.api.Data;
 using Tiktoken;
 using Microsoft.SemanticKernel.Services;
 using Microsoft.Extensions.Caching.Memory;
@@ -22,7 +21,7 @@ namespace genai.backend.api.Services
         private readonly Kernel chatKernel;
         private readonly IChatCompletionService chatCompletion;
         private readonly IConnectionMultiplexer _redisConnection;
-        private readonly ApplicationDbContext _dbContext;
+        private readonly Cassandra.ISession _session;
         private readonly ResponseStream _responseStream;
         private readonly UserService _userService;
         private readonly IMemoryCache _cache;
@@ -32,10 +31,10 @@ namespace genai.backend.api.Services
         /// </summary>
         /// <param name="configuration">The configuration object.</param>
         /// <param name="dbContext">The application database context.</param>
-        public SemanticService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream, UserService userService, IMemoryCache cache)
+        public SemanticService(IConfiguration configuration, Cassandra.ISession session, ResponseStream responseStream, UserService userService, IMemoryCache cache)
         {
             _configuration = configuration;
-            _dbContext = dbContext;
+            _session = session;
             _responseStream = responseStream;
             _userService = userService;
             _cache = cache;
@@ -50,32 +49,37 @@ namespace genai.backend.api.Services
         /// <param name="userId">The user ID.</param>
         /// <param name="userInput">The user input.</param>
         /// <param name="chatId">The chat ID.</param>
-        public async Task<string> semanticChatAsync(string userId, int modelId, string userInput, string chatId = null)
+        public async Task<string> semanticChatAsync(Guid userId, Guid modelId, string userInput, string? chatId = null)
         {
             try
             {
                 bool isModelSubscribed = await _cache.GetOrCreateAsync($"subscribed-{userId}-{modelId}", async entry =>
                 {
                     entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
-                    return await _dbContext.UserSubscriptions.AnyAsync(u => u.UserId == userId && u.ModelId == modelId);
+                    var checkSubscriptionStatement = "SELECT COUNT(*) FROM usersubscriptions WHERE userid = ? AND modelid = ?";
+                    var preparedStatement = _session.Prepare(checkSubscriptionStatement);
+                    var boundStatement = preparedStatement.Bind(userId, modelId);
+                    var result = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
+                    return result.First().GetValue<long>(0) > 0;
                 });
 
                 if (!isModelSubscribed)
                 {
-                    modelId = _configuration.GetValue<int>("DefaultModelId");
+                    modelId = _configuration.GetValue<Guid>("DefaultModelId");
                 }
                 var GptModel = await _cache.GetOrCreateAsync($"model-details-{modelId}", async entry =>
                 {
                     entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
-                    return await _dbContext.AvailableModels
-                        .Where(m => m.DeploymentId == modelId)
-                        .Select(m => new
-                        {
-                            ModelName = m.DeploymentName,
-                            ModelUrl = m.Endpoint,
-                            ModelKey = m.ApiKey
-                        })
-                        .ToListAsync();
+                    var getModelDetailsStatement = "SELECT deploymentname, endpoint, apikey FROM availablemodels WHERE deploymentid = ?";
+                    var preparedStatement = _session.Prepare(getModelDetailsStatement);
+                    var boundStatement = preparedStatement.Bind(modelId);
+                    var result = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
+                    return result.Select(row => new
+                    {
+                        ModelName = row.GetValue<string>("deploymentname"),
+                        ModelUrl = row.GetValue<string>("endpoint"),
+                        ModelKey = row.GetValue<string>("apikey")
+                    }).ToList();
                 });
                 var chatKernel = Kernel.CreateBuilder()
                 .AddAzureOpenAIChatCompletion(
@@ -88,9 +92,9 @@ namespace genai.backend.api.Services
                 chatKernel.Plugins.AddFromType<DateTimePlugin>("CurrentDateTimePlugin");
                 chatKernel.Plugins.AddFromType<GooglePlugin>("GoogleWebSearchPlugin");
                 var chatCompletion = chatKernel.GetRequiredService<IChatCompletionService>();
-                if (chatId != null && chatId.Length !=0)
+                if (chatId != null)
                 {
-                    await ContinueExistingChat(chatKernel, chatCompletion, userId, chatId, userInput);
+                    await ContinueExistingChat(chatKernel, chatCompletion, userId, Guid.Parse(chatId), userInput);
                     return null;
                 }
                 else
@@ -106,15 +110,23 @@ namespace genai.backend.api.Services
             }
         }
 
-        private async Task ContinueExistingChat(Microsoft.SemanticKernel.Kernel chatKernel, Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService chatCompletion, string userId, string chatId, string userInput)
+        private async Task ContinueExistingChat(Microsoft.SemanticKernel.Kernel chatKernel, Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService chatCompletion, Guid userId, Guid chatId, string userInput)
         {
             try
             {
-                
-                var existingChatHistory = await _dbContext.ChatHistory
-                    .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
+                // Prepare and execute the CQL query to fetch chat history by chatId
+                var chatSelectStatement = "SELECT chathistoryjson FROM chathistory WHERE userid = ? AND chatid = ?";
+                var preparedStatement = _session.Prepare(chatSelectStatement);
+                var boundStatement = preparedStatement.Bind(userId, chatId);
+                var resultSet = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
+                var row = resultSet.FirstOrDefault();
 
-                var oldchatHistory = JsonSerializer.Deserialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(existingChatHistory.ChatHistoryJson);
+                if (row == null)
+                {
+                    await _responseStream.PartialResponse(userId.ToString(), $"Error continuing chat with existing history: Chat history not found for chat ID: {chatId}");
+                    return;
+                }
+                var oldchatHistory = JsonSerializer.Deserialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(Encoding.UTF8.GetString(row.GetValue<byte[]>("chathistoryjson")));
                 //oldchatHistory.AddMessage(AuthorRole.User, userInput);
                 oldchatHistory.Add(
                     new()
@@ -146,11 +158,11 @@ namespace genai.backend.api.Services
                     if (!string.IsNullOrEmpty(chatUpdate.Content))
                     {
                         fullMessage.Append(chatUpdate.Content);
-                        await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = chatId, PartialContent = chatUpdate.Content }));
+                        await _responseStream.PartialResponse(userId.ToString(), JsonSerializer.Serialize(new { ChatId = chatId.ToString(), PartialContent = chatUpdate.Content }));
                         await Task.Delay(30);//5ms response stream delay for smooth chat stream
                     }
                 }
-                await _responseStream.EndStream(userId);
+                await _responseStream.EndStream(userId.ToString());
 
                 var completionToken = TokenCalculator(chatCompletion.GetModelId(), null, fullMessage.ToString()).CompletionTokens;
 
@@ -171,19 +183,20 @@ namespace genai.backend.api.Services
                 );
 
                 //oldchatHistory.AddAssistantMessage(fullMessage.ToString());
-
-                existingChatHistory.ChatHistoryJson = JsonSerializer.Serialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(oldchatHistory);
-                existingChatHistory.CreatedOn = DateTime.UtcNow;
-                existingChatHistory.NetTokenConsumption = existingChatHistory.NetTokenConsumption + completionToken;
-                await _dbContext.SaveChangesAsync();
+                // Serialize the updated chat history and prepare to update in Cassandra
+                var updatedChatHistoryJson = Encoding.UTF8.GetBytes(JsonSerializer.Serialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(oldchatHistory));
+                var updateStatement = "UPDATE chathistory SET chathistoryjson = ? WHERE userid = ? AND chatid = ?";
+                var updatePreparedStatement = _session.Prepare(updateStatement);
+                var updateBoundStatement = updatePreparedStatement.Bind(updatedChatHistoryJson, userId, chatId);
+                await _session.ExecuteAsync(updateBoundStatement).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 if (ex.InnerException is Azure.RequestFailedException requestFailedException && requestFailedException.ErrorCode == "content_filter")
                 {
-                    await _responseStream.PartialResponse(userId, "Your query got a filtered content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
+                    await _responseStream.PartialResponse(userId.ToString(), "Your query got a filtered content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
                 }
-                await _responseStream.PartialResponse(chatId, $"Error continuing chat with existing history: {ex.Message}");
+                await _responseStream.PartialResponse(chatId.ToString(), $"Error continuing chat with existing history: {ex.Message}");
                 throw;
             }
         }
@@ -193,9 +206,9 @@ namespace genai.backend.api.Services
         /// </summary>
         /// <param name="userId">The user ID.</param>
         /// <param name="userInput">The user input.</param>
-        public async Task<string> StartNewChat(Microsoft.SemanticKernel.Kernel chatKernel, Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService chatCompletion, string userId, string userInput)
+        public async Task<string> StartNewChat(Microsoft.SemanticKernel.Kernel chatKernel, Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService chatCompletion, Guid userId, string userInput)
         {
-            var newChatId = Guid.NewGuid().ToString();
+            var newChatId = Guid.NewGuid();
             try
             {
                 var promptTemplate = "You are Eva(gender: female), an AI by Abhishek, designed to assist users seamlessly. " +
@@ -242,11 +255,11 @@ namespace genai.backend.api.Services
                     if (!string.IsNullOrEmpty(chatUpdate.Content))
                     {
                         fullMessage.Append(chatUpdate.Content);
-                        await _responseStream.PartialResponse(userId, JsonSerializer.Serialize(new { ChatId = userId, PartialContent = chatUpdate.Content }));
+                        await _responseStream.PartialResponse(userId.ToString(), JsonSerializer.Serialize(new { ChatId = userId.ToString(), PartialContent = chatUpdate.Content }));
                         await Task.Delay(30);//5ms response stream delay for smooth chat stream
                     }
                 }
-                await _responseStream.EndStream(userId);
+                await _responseStream.EndStream(userId.ToString());
                 //newChatHistory.AddMessage(AuthorRole.Assistant, fullMessage.ToString());
                 var completionToken = TokenCalculator(chatCompletion.GetModelId(), null, fullMessage.ToString()).CompletionTokens;
                 newChatHistory.Add(
@@ -267,44 +280,44 @@ namespace genai.backend.api.Services
 
                 var updatedJsonChatHistory = JsonSerializer.Serialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(newChatHistory);
                 var newTitle = await NewChatTitle(chatKernel, newChatHistory.ElementAt(1).Content.ToString());
-                var dbchatHistory = new Models.ChatHistory
-                {
-                    UserId = userId,
-                    ChatId = newChatId,
-                    ChatTitle = newTitle,
-                    ChatHistoryJson = updatedJsonChatHistory,
-                    CreatedOn = DateTime.UtcNow,
-                    NetTokenConsumption = completionToken
-                };
-                _dbContext.ChatHistory.Add(dbchatHistory);
-                await _dbContext.SaveChangesAsync();
-                return newChatId;
+                // Prepare and execute the CQL query to insert new chat history
+                var insertStatement = "INSERT INTO chathistory (userid, chatid, chattitle, chathistoryjson, createdon, nettokenconsumption) VALUES (?, ?, ?, ?, ?, ?)";
+                var preparedStatement = _session.Prepare(insertStatement);
+                var boundStatement = preparedStatement.Bind(userId, newChatId, newTitle, Encoding.UTF8.GetBytes(updatedJsonChatHistory), DateTime.UtcNow, completionToken);
+                await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
+
+                return newChatId.ToString();
             }
             catch (Exception ex)
             {
                 if (ex.InnerException is Azure.RequestFailedException requestFailedException && requestFailedException.ErrorCode == "content_filter")
                 {
-                    await _responseStream.PartialResponse(userId, "Your query got a filtered content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
+                    await _responseStream.PartialResponse(userId.ToString(), "Your query got a filtered content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
                 }
-                await _responseStream.PartialResponse(userId, $"Error starting new chat: {ex.InnerException?.Message ?? ex.Message}");
+                await _responseStream.PartialResponse(userId.ToString(), $"Error starting new chat: {ex.InnerException?.Message ?? ex.Message}");
                 throw;
             }
         }
-        
-        public async Task<string> GetConversation(string chatId)
+
+        public async Task<string> GetConversation(Guid userId, Guid chatId)
         {
             try
             {
-                /*await _responseStream.ClearChatTitles(chatId);*/
-                var chatHistory = await _dbContext.ChatHistory
-                    .FirstOrDefaultAsync(ch => ch.ChatId == chatId);
+                // Prepare and execute the CQL query to fetch chat history by chatId
+                var chatSelectStatement = "SELECT chathistoryjson FROM chathistory WHERE userid = ? AND chatid = ?";
+                var preparedStatement = _session.Prepare(chatSelectStatement);
+                var boundStatement = preparedStatement.Bind(userId, chatId);
+                var resultSet = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
+                var row = resultSet.FirstOrDefault();
 
-                if (chatHistory == null)
+                if (row == null)
                 {
                     return $"Chat history not found for chat ID: {chatId}";
                 }
 
-                return chatHistory.ChatHistoryJson;
+                // Decode the BLOB (binary large object) data to string
+                var chatHistoryJsonBlob = row.GetValue<byte[]>("chathistoryjson");
+                return Encoding.UTF8.GetString(chatHistoryJsonBlob);
             }
             catch (Exception ex)
             {

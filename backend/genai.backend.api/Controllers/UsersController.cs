@@ -33,9 +33,9 @@ namespace genai.backend.api.Controllers
 
             try
             {
-                dynamic uId_token = await _userService.GetCreateUser(request.EmailId, request.FirstName, request.LastName, request.Partner);
+                dynamic uId_token = await _userService.GetCreateUser(request.EmailId.ToLower(), request.FirstName, request.LastName, request.Partner);
                 HttpContext.Response.Headers.Add("Authorization", uId_token.Token);
-                return Ok(uId_token.UserId);
+                return Ok(uId_token.UserId.ToString());
             }
             catch (Exception ex) {
                 return BadRequest(ex.Message);
@@ -57,7 +57,7 @@ namespace genai.backend.api.Controllers
                 var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
 
                 var userId = userIdClaim.Value;
-                var conversations = await _userService.Conversations(userId);
+                var conversations = await _userService.Conversations(Guid.Parse(userId));
                 return Ok(conversations); // Return the list of conversations;
             }
             catch (Exception ex)
@@ -81,7 +81,7 @@ namespace genai.backend.api.Controllers
                 var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
 
                 var userId = userIdClaim.Value;
-                var models = await _userService.GetSubscribedModels(userId: userId);
+                var models = await _userService.GetSubscribedModels(userId: Guid.Parse(userId));
                 return Ok(models); // Return the list of conversations;
             }
             catch (Exception ex)
@@ -91,13 +91,24 @@ namespace genai.backend.api.Controllers
         }
 
         [HttpGet("conversation/{chatId}")]
-        public async Task<IActionResult> GetConvHistory(string chatId)
+        public async Task<IActionResult> GetConvHistory(Guid chatId)
         {
-            var chatJson = await _semanticService.GetConversation(chatId);
+            var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
+
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+
+            // Decode the JWT token to get the userId
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jwtToken = tokenHandler.ReadJwtToken(token);
+
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
+
+            var userId = userIdClaim.Value;
+            var chatJson = await _semanticService.GetConversation(Guid.Parse(userId), chatId);
             return Ok(chatJson);
         }
         [HttpPatch("conversation/{chatId}")]
-        public async Task<IActionResult> RenameOrDeleteChatTitle(string chatId, [FromQuery] string? title, [FromBody] DeleteRequest? deleteRequest)
+        public async Task<IActionResult> RenameOrDeleteChatTitle(Guid chatId, [FromQuery] string? title, [FromBody] DeleteRequest? deleteRequest)
         {
             var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
 
@@ -115,7 +126,7 @@ namespace genai.backend.api.Controllers
                 // If the title is null or empty, check if delete request is present
                 if (deleteRequest != null && deleteRequest.Delete)
                 {
-                    var result = await _userService.DeleteConversation(userId, chatId);
+                    var result = await _userService.DeleteConversation(Guid.Parse(userId), chatId);
                     if (result)
                     {
                         return NoContent(); // Successfully deleted
@@ -130,7 +141,7 @@ namespace genai.backend.api.Controllers
             else
             {
                 // If the title is provided, rename the chat title
-                var result = await _userService.RenameConversation(userId, chatId, title);
+                var result = await _userService.RenameConversation(Guid.Parse(userId), chatId, title);
                 if (result)
                 {
                     return NoContent(); // Successfully renamed
@@ -145,12 +156,12 @@ namespace genai.backend.api.Controllers
         }
 
         public class CreateUserRequest
-    {
-        public string EmailId { get; set; }
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
-        public string Partner { get; set; }
-    }
+        {
+            public string EmailId { get; set; }
+            public string? FirstName { get; set; }
+            public string? LastName { get; set; }
+            public string Partner { get; set; }
+        }
 
     }
 }

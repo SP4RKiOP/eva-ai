@@ -1,5 +1,4 @@
-﻿using genai.backend.api.Data;
-using genai.backend.api.Models;
+﻿using genai.backend.api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
@@ -16,76 +15,87 @@ namespace genai.backend.api.Services
     public class UserService
     {
         private readonly IConfiguration? _configuration;
-        private readonly ApplicationDbContext _dbContext;
+        private readonly Cassandra.ISession _session;
         private readonly ResponseStream _responseStream;
         private readonly IMemoryCache _cache;
-        public UserService(IConfiguration configuration, ApplicationDbContext dbContext, ResponseStream responseStream, IMemoryCache cache)
+        public UserService(IConfiguration configuration, Cassandra.ISession session, ResponseStream responseStream, IMemoryCache cache)
         {
             _configuration = configuration;
-            _dbContext = dbContext;
+            _session = session;
             _responseStream = responseStream;
             _cache = cache;
         }
         public async Task<Object> GetCreateUser(string emailId, string? firstName, string? lastName, string partner)
         {
             // Attempt to fetch the user and their subscribed models in a single query
-            var user = await _dbContext.Users
-                .FirstOrDefaultAsync(u => u.Email == emailId && u.Partner == partner);
+            var userSelectStatement = "SELECT * FROM users WHERE email = ? AND partner = ?";
+            var userPreparedStatement = _session.Prepare(userSelectStatement);
+            var user = await _session.ExecuteAsync(userPreparedStatement.Bind(emailId, partner)).ConfigureAwait(false);
+            var userRow = user.FirstOrDefault();
 
-            if (user == null)
+            if (userRow == null)
             {
                 // User doesn't exist, so create a new one
-                user = new User
-                {
-                    UserId = Guid.NewGuid().ToString(),
-                    FirstName = firstName,
-                    LastName = lastName,
-                    Email = emailId,
-                    Partner = partner
-                };
+                var userId = Guid.NewGuid();
+                var userInsertStatement = "INSERT INTO users (userid, firstname, lastname, email, partner) VALUES (?, ?, ?, ?, ?)";
+                var userInsertPreparedStatement = _session.Prepare(userInsertStatement);
+                await _session.ExecuteAsync(userInsertPreparedStatement.Bind(userId, firstName, lastName, emailId, partner)).ConfigureAwait(false);
+
                 // Create a default entry for UserSubscriptions
-                var defaultSubscription = new UserSubscription
-                {
-                    UserId = user.UserId,
-                    ModelId = _configuration.GetValue<int>("DefaultModelId"), // Set the default ModelId as needed
-                    User = user, // Set the User navigation property
-                    AvailableModel = await _dbContext.AvailableModels.FirstOrDefaultAsync() // Set the AvailableModel navigation property
-                };
-                _dbContext.Users.Add(user);
-                _dbContext.UserSubscriptions.Add(defaultSubscription);
-                await _dbContext.SaveChangesAsync();
+                // Assuming default model ID and available model are fetched or set beforehand
+                var defaultModelId = _configuration.GetValue<Guid>("DefaultModelId");
+                var defaultModel = "DefaultModel"; // Placeholder, fetch or define as needed
+
+                var subscriptionInsertStatement = "INSERT INTO usersubscriptions (userid, modelid) VALUES (?, ?)";
+                var subscriptionInsertPreparedStatement = _session.Prepare(subscriptionInsertStatement);
+                await _session.ExecuteAsync(subscriptionInsertPreparedStatement.Bind(userId, defaultModelId)).ConfigureAwait(false);
+                return new { UserId = userId, Token = GenerateJwtToken(userId) };
             }
-            // Generate JWT token
+            else
+            {
+                return new { UserId = userRow.GetValue<Guid>("userid"), Token = GenerateJwtToken(userRow.GetValue<Guid>("userid")) };
+            }
+
+        }
+        private string GenerateJwtToken(Guid userId)
+        {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]); // Replace with your secret key
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId)
+                    new Claim(ClaimTypes.NameIdentifier, userId.ToString())
                 }),
-                Expires = DateTime.UtcNow.AddDays(1), // Token expiry time
+                Expires = DateTime.UtcNow.AddDays(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
-
-            return new { UserId = user.UserId, Token = tokenString };
+            return tokenHandler.WriteToken(token);
         }
-        public async Task<Object> Conversations(string userId)
+        public async Task<Object> Conversations(Guid userId)
         {
             try
             {
-                var chatTitles = await _dbContext.ChatHistory
-                    .Where(ch => ch.UserId == userId)
-                    .Select(ch => new 
-                    { 
-                        id = ch.ChatId,
-                        title = ch.ChatTitle, 
-                        lastActivity = ch.CreatedOn
-                    })
-                    .ToListAsync();
-                if (chatTitles != null && chatTitles.Count > 0)
+                // Prepare and execute the CQL query to fetch chat history
+                var chatSelectStatement = "SELECT chatid, chattitle, createdon FROM chathistory WHERE userid = ?";
+                var preparedStatement = _session.Prepare(chatSelectStatement);
+                var boundStatement = preparedStatement.Bind(userId);
+                var resultSet = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
+                // Convert the result set to a list of chat titles
+                var chatTitles = new List<dynamic>();
+                foreach (var row in resultSet)
+                {
+                    chatTitles.Add(new
+                    {
+                        id = row.GetValue<Guid>("chatid"),
+                        title = row.GetValue<string>("chattitle"),
+                        lastActivity = row.GetValue<DateTime>("createdon")
+                    });
+                }
+
+                // Serialize and return the chat titles if any are found
+                if (chatTitles.Count > 0)
                 {
                     return JsonSerializer.Serialize(chatTitles);
                 }
@@ -93,56 +103,86 @@ namespace genai.backend.api.Services
             }
             catch (Exception ex)
             {
-                // Log or
+                // Log the exception
                 Console.WriteLine(ex.ToString());
                 return new { };
             }
         }
-        public async Task<Object> GetSubscribedModels(string userId)
+        public async Task<Object> GetSubscribedModels(Guid userId)
         {
-            var models = await _dbContext.UserSubscriptions
-            .Include(u => u.AvailableModel)
-            .Where(u => u.UserId == userId)
-            .Select(m => new
-            {
-                id = m.ModelId,
-                name = m.AvailableModel.DeploymentName.ToUpper()
-            })
-            .ToListAsync();
+            // First query to get model IDs from usersubscriptions
+            var modelSelectStatement = "SELECT modelid FROM usersubscriptions WHERE userid = ?";
+            var preparedStatement = _session.Prepare(modelSelectStatement);
+            var boundStatement = preparedStatement.Bind(userId);
+            var resultSet = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
 
-            if (models != null)
+            var modelIds = resultSet.Select(row => row.GetValue<Guid>("modelid")).ToList();
+
+            if (modelIds.Any())
             {
-                return JsonSerializer.Serialize(models.ToArray());
+                // Dynamically create the query with the correct number of placeholders for IN clause
+                var placeholders = string.Join(",", modelIds.Select(_ => "?"));
+                var deploymentNameSelectStatement = $"SELECT deploymentid, deploymentname FROM availablemodels WHERE deploymentid IN ({placeholders})";
+
+                // Prepare the dynamically constructed query
+                var deploymentNamePreparedStatement = _session.Prepare(deploymentNameSelectStatement);
+
+                // Bind each individual modelId as a separate parameter
+                var deploymentNameBoundStatement = deploymentNamePreparedStatement.Bind(modelIds.Cast<object>().ToArray());
+
+                // Execute the query
+                var deploymentNameResultSet = await _session.ExecuteAsync(deploymentNameBoundStatement).ConfigureAwait(false);
+
+                // Process the result and return the list of models
+                var models = deploymentNameResultSet.Select(row => new
+                {
+                    id = row.GetValue<Guid>("deploymentid").ToString(),
+                    name = row.GetValue<string>("deploymentname").ToUpper()
+                }).ToList();
+
+                return JsonSerializer.Serialize(models);
             }
+
             return new { };
         }
-        public async Task<bool> RenameConversation(string userId, string chatId, string newTitle)
-        {
-            var chat = await _dbContext.ChatHistory
-                .FirstOrDefaultAsync(ch => ch.UserId == userId && ch.ChatId == chatId);
 
-            if (chat == null)
+        public async Task<bool> RenameConversation(Guid userId, Guid chatId, string newTitle)
+        {
+            var chatSelectStatement = "SELECT chatid FROM chathistory WHERE userid = ? AND chatid = ?";
+            var preparedStatement = _session.Prepare(chatSelectStatement);
+            var boundStatement = preparedStatement.Bind(userId, chatId);
+            var resultSet = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
+
+            if (!resultSet.Any())
             {
                 return false; // Chat not found
             }
 
-            chat.ChatTitle = newTitle;
-            await _dbContext.SaveChangesAsync();
+            var chatUpdateStatement = "UPDATE chathistory SET chattitle = ? WHERE userid = ? AND chatid = ?";
+            var updatePreparedStatement = _session.Prepare(chatUpdateStatement);
+            var updateBoundStatement = updatePreparedStatement.Bind(newTitle, userId, chatId);
+            await _session.ExecuteAsync(updateBoundStatement).ConfigureAwait(false);
+
             return true;
         }
 
-        public async Task<bool> DeleteConversation(string userId, string chatId)
+        public async Task<bool> DeleteConversation(Guid userId, Guid chatId)
         {
-            var chat = await _dbContext.ChatHistory
-                .FirstOrDefaultAsync(ch => ch.UserId == userId && ch.ChatId == chatId);
+            var chatSelectStatement = "SELECT chatid FROM chathistory WHERE userid = ? AND chatid = ?";
+            var preparedStatement = _session.Prepare(chatSelectStatement);
+            var boundStatement = preparedStatement.Bind(userId, chatId);
+            var resultSet = await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
 
-            if (chat == null)
+            if (!resultSet.Any())
             {
                 return false; // Chat not found
             }
 
-            _dbContext.ChatHistory.Remove(chat);
-            await _dbContext.SaveChangesAsync();
+            var chatDeleteStatement = "DELETE FROM chathistory WHERE userid = ? AND chatid = ?";
+            var deletePreparedStatement = _session.Prepare(chatDeleteStatement);
+            var deleteBoundStatement = deletePreparedStatement.Bind(userId, chatId);
+            await _session.ExecuteAsync(deleteBoundStatement).ConfigureAwait(false);
+
             return true;
         }
     }
