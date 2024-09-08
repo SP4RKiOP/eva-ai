@@ -4,9 +4,10 @@ import SampleInput from './sample-input';
 interface InputProps {
     onSubmit: (text: string) => void;
     messagesLength: number;
+    showSampleInput?: boolean;
 }
 
-const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
+const Input: React.FC<InputProps> = ({ onSubmit, messagesLength, showSampleInput }) => {
     const [text, setText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -50,7 +51,7 @@ const Input: React.FC<InputProps> = ({ onSubmit, messagesLength }) => {
         <div className="w-full pt-2 md:pt-0 dark:border-white/20 md:border-transparent md:dark:border-transparent md:w-[calc(100%-.5rem)]">
             <form onSubmit={handleSubmit} className='stretch mx-2 flex flex-row gap-3 last:mb-2 md:mx-4 md:last:mb-6 lg:mx-auto lg:max-w-2xl xl:max-w-3xl'>
                 <div className="relative flex h-full flex-1 items-stretch md:flex-col">
-                    {messagesLength === 0 && <SampleInput /> }
+                    {messagesLength === 0 && !showSampleInput && <SampleInput />}
                     <div className="flex w-full items-center">
                         <div className={`flex w-full justify-between items-stretch dark:text-white rounded-[26px] bg-[#f4f4f4] dark:bg-[--main-surface-secondary]`}>
                             <div className="flex grow items-center">

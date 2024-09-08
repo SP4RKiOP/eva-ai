@@ -12,6 +12,7 @@ import { ChatService } from '@/lib/service';
 import { useSession } from "next-auth/react";
 import { CodeBlock } from './ui/codeblock';
 import { MemoizedReactMarkdown } from './markdown';
+import LoadingSpinner from './ui/loading-spinner';
 interface ChatProps {
     chatId?: string;
     fName: string;
@@ -34,6 +35,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     const [userId, setUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
+    const [loadingConversaion, setloadingConversaion] = useState<boolean>(false);
     const getuId_token = async () => {
       const userData = {
         emailId: uMail,
@@ -72,7 +74,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                 isPlaceholder: true
             };
             setMessages((prevMessages) => [...prevMessages, placeholderMessage]);
-            window.addEventListener("visibilitychange", async () => await chatService.reconnect());
+            
             var response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                 method: 'POST',
                 headers: {
@@ -138,15 +140,32 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
       setCurrentChatId(undefined);
     };
     const handleOldChat = async (iD?: string) => {
-      setMessages([]);
-      window.history.pushState({}, '', `/c/${iD}`);
-      setCurrentChatId(iD);
+      if(currentChatId !== iD) {
+        setMessages([]);
+        window.history.pushState({}, '', `/c/${iD}`);
+        setCurrentChatId(iD);
+      }
     };
 
     useEffect(() => {
+      // Function to handle visibility change
+      const handleVisibilityChange = async () => {
+        if (document.visibilityState === 'visible') {
+            // console.log("Page is now visible. Checking connection state...");
+            if (!chatService.isConnectionConnected()) {
+              // console.log("Connection is not active. Attempting to reconnect...");
+              await chatService.reconnect();
+            } else {
+              // console.log("Connection is active. No need to reconnect.");
+            }
+        }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Fetch latest chat history
-    if (currentChatId) {
-      if(messages.length==0) {
+    if (currentChatId && messages.length === 0) {
+      try{
+        setloadingConversaion(true);
         fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversation/${currentChatId}`, {
           method: "GET",
           headers: {
@@ -169,10 +188,15 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                 }));
               setMessages(newMessages);
             }
-          })
-          .catch((error) => console.error("Error fetching chat history:", error));
+            setloadingConversaion(false);
+          });
+      } catch (error) {
+        console.error("Error fetching chat history:", error);
+        setloadingConversaion(false);
+      } finally {
       }
     }
+
     if((window.localStorage.getItem('userId')==null || window.localStorage.getItem('userId')?.length==0) && status=='authenticated') {
       
       const userData = {
@@ -207,12 +231,6 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         });
     }else {
       setUserId(window.localStorage.getItem('userId') as string);
-    }
-    
-    if(userId){
-      if(chatService.HubConnectionState$.value=="Connected" && !chatService.roomJoined$.value) {
-        chatService.joinChat(userId);
-      }
     }
 
     const subscription = chatService.msgs$.subscribe((msgs) => {
@@ -257,8 +275,9 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
           }
       }
     });
+
     return () => {
-      subscription.unsubscribe();
+      subscription.unsubscribe(); document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [chatService, currentChatId, userId]);
 
@@ -275,7 +294,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                             <HeaderMobile service={chatService} onNewChatClick={() => handleNewChat()} getuId_token={getuId_token}/><HeaderDesktop service={chatService} getuId_token={getuId_token}/>
                             <div className='flex flex-col-reverse h-full overflow-y-auto'>
                                 <div className="translateZ(0px)">
-                                    {messages.length === 0 ? ( <Greet />) : 
+                                {loadingConversaion ? <LoadingSpinner show={true} /> : (messages.length === 0) ? <Greet /> : 
                                     (messages.map((message, index) => (
                                             <div key={index} className={`px-4 py-2 w-full justify-center text-base md:gap-6 mb-8 `}>
                                               {/* <div className="h-1 bg-gradient-to-r from-black to-black mx-auto gap-3 md:px-5 lg:px-1 xl:px-5 mb-5 md:max-w-3xl lg:max-w-[40rem] xl:max-w-[48rem]"></div> */}
@@ -356,7 +375,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                     )}
                                 </div>
                             </div>
-                            <Input onSubmit={handleMessageSubmit} messagesLength={messages.length}/>
+                            <Input onSubmit={handleMessageSubmit} messagesLength={messages.length} showSampleInput={loadingConversaion}/>
                         </div>
                     </div>
                 </div>
