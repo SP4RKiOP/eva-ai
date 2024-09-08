@@ -13,7 +13,7 @@ export default function HomePage() {
   const userImage = session?.user?.image ?? '';
   const partner = (session as any)?.partner;
   const router = useRouter();
-  const chatService = useMemo(() => ChatService.getInstance(), []);
+  const chatService = ChatService.getInstance();
 
   useEffect(() => {
     if (status === 'unauthenticated') {
