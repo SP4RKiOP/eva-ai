@@ -18,7 +18,7 @@ interface IndexPageProps {
    const partner = (session as any)?.partner;
    const router = useRouter();
    // Create an instance of ChatService
-   const chatService = new ChatService();
+   const chatService = useMemo(() => ChatService.getInstance(), []);
    
    // Redirect if session is null
    useEffect(() => {

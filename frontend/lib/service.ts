@@ -2,6 +2,7 @@ import * as signalR from '@microsoft/signalr';
 import { BehaviorSubject, Subject } from 'rxjs';
 
 export class ChatService {
+  private static instance: ChatService;
   private connection: signalR.HubConnection = new signalR.HubConnectionBuilder()
   .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/hub")
   .withAutomaticReconnect()
@@ -20,7 +21,7 @@ export class ChatService {
   public HubConnectionState$ = new BehaviorSubject<string>('');
   public roomJoined$ = new BehaviorSubject<boolean>(false);
 
-  constructor() {
+  private constructor() {
   this.start();
   // Inside the ChatService class, update the StreamMessage event handler
   this.connection.on("StreamMessage", (message: string) => {
@@ -59,6 +60,12 @@ export class ChatService {
   //   this.chatTitles = [];
   //   this.chatTitles$.next(this.chatTitles);
   // });
+}
+public static getInstance(): ChatService {
+  if (!ChatService.instance) {
+      ChatService.instance = new ChatService();
+  }
+  return ChatService.instance;
 }
 
     //start connection
