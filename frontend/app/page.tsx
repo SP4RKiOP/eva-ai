@@ -18,7 +18,7 @@ export default function HomePage() {
   const chatService = useMemo(() => ChatService.getInstance(), []);
 
   useEffect(() => {
-    if (status != 'authenticated' || !session) {
+    if (status === 'unauthenticated' || !session) {
       router.push('/login');
     }
     if(session){
