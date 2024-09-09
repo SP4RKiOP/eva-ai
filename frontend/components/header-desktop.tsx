@@ -11,9 +11,10 @@ interface Model {
 interface ModelSelectProps {
     service:ChatService;
     getuId_token: () => Promise<void>;
+    back_auth: string;
 }
 
-const HeaderDesktop: React.FC<ModelSelectProps> = ({service, getuId_token}) => {
+const HeaderDesktop: React.FC<ModelSelectProps> = ({service, getuId_token, back_auth}) => {
     const [models, setModels] = useState<Model[]>([]);
     const [selectedModel, setSelectedModel] = useState<string>('');
     const fetchedRef = useRef(false);
@@ -25,11 +26,11 @@ const HeaderDesktop: React.FC<ModelSelectProps> = ({service, getuId_token}) => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+              "Authorization": `Bearer ${back_auth}`
             },
           });
           if (response.status == 401) {
-            getuId_token();
+            await getuId_token();
             return getModels();
           }
           const data = await response.text();

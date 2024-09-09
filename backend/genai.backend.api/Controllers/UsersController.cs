@@ -90,7 +90,7 @@ namespace genai.backend.api.Controllers
             }
         }
 
-        [HttpGet("conversation/{chatId}")]
+        [HttpGet("conversation/{chatId:guid}")]
         public async Task<IActionResult> GetConvHistory(Guid chatId)
         {
             var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
@@ -107,7 +107,7 @@ namespace genai.backend.api.Controllers
             var chatJson = await _semanticService.GetConversation(Guid.Parse(userId), chatId);
             return Ok(chatJson);
         }
-        [HttpPatch("conversation/{chatId}")]
+        [HttpPatch("conversation/{chatId:guid}")]
         public async Task<IActionResult> RenameOrDeleteChatTitle(Guid chatId, [FromQuery] string? title, [FromBody] DeleteRequest? deleteRequest)
         {
             var authHeader = HttpContext.Request.Headers["Authorization"].ToString();

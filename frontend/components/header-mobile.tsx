@@ -14,9 +14,10 @@ interface HeaderProps {
   service: ChatService;
   onNewChatClick: () => void;
   getuId_token: () => Promise<void>;
+  back_auth: string;
 }
 
-const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick, getuId_token}) => {
+const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick, getuId_token, back_auth}) => {
   const { toggleChatHistoryVisibility } = useVisibility();
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -29,11 +30,11 @@ const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick, getuId_t
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+            "Authorization": `Bearer ${back_auth}`
           },
         });
         if (response.status == 401) {
-          getuId_token();
+          await getuId_token();
           return getModels();
         }
         const data = await response.text();

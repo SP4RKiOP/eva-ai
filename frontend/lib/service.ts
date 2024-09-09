@@ -19,6 +19,7 @@ export class ChatService {
   public selectedModelId$ = new BehaviorSubject<number>(1);
   public HubConnectionState$ = new BehaviorSubject<string>('');
   public roomJoined$ = new BehaviorSubject<boolean>(false);
+  public userId$ = new BehaviorSubject<string>('');
 
   private constructor() {
     this.start();
@@ -76,7 +77,7 @@ public isConnectionConnected(): boolean {
 //start connection
 public async start(){
     try {
-        if (typeof window !== 'undefined' && window.localStorage.getItem('userId') &&this.connection.state === signalR.HubConnectionState.Disconnected) {
+        if (this.connection.state === signalR.HubConnectionState.Disconnected) {
           await this.connection.start()
         .then(() => {
             // console.log("SignalR Connected.");
@@ -106,10 +107,14 @@ public async stop(){
 }
 
 //join chatId
-private async joinChat() {
+public async joinChat(userId?: string) {
   try{
-    if (typeof window !== 'undefined' && window.localStorage.getItem('userId') && this.isConnectionConnected()) {
-      const userId = window.localStorage.getItem('userId');
+    if(userId && this.isConnectionConnected()) {
+      await this.connection.invoke("JoinRoom", { userId });
+      this.roomJoined$.next(true);
+      // console.log("User joined successfully.", userId);
+    } else if (this.userId$.value && this.isConnectionConnected()) {
+      const userId = this.userId$.value;
       await this.connection.invoke("JoinRoom", { userId });
       this.roomJoined$.next(true);
       // console.log("User joined successfully.", userId);

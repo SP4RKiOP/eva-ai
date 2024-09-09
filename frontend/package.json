@@ -32,6 +32,7 @@
     "geist": "^1.2.2",
     "google-auth-library": "^8.9.0",
     "ioredis": "^5.3.2",
+    "jwt-decode": "^4.0.0",
     "langchain": "^0.1.19",
     "lucide-react": "^0.435.0",
     "nanoid": "^5.0.4",

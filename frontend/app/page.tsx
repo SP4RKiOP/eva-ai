@@ -12,28 +12,22 @@ export default function HomePage() {
   const userMail = session?.user?.email ?? '';
   const userImage = session?.user?.image ?? '';
   const partner = (session as any)?.partner;
+  const userid = (session as any)?.userid;
+  const back_auth = (session as any)?.back_auth;
   const router = useRouter();
   const chatService = useMemo(() => ChatService.getInstance(), []);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (status != 'authenticated' || !session) {
       router.push('/login');
     }
-  }, [status, router]);
-  
-  useEffect(() => {
-    if (!session) {
-      router.push('/login');
+    if(session){
+      chatService.userId$.next(userid as string);
     }
-  }, [session, router]);
-
-  if (status === 'loading') {
-    return null; // Prevent rendering until session status is determined
-  }
-
+  }, [status, session, router]); 
   return (
     <div>
-      <Chat fName={fstNam} lName={lstNam} uMail={userMail} uImg={userImage} partner={partner} chatService={chatService}/>
+      <Chat fName={fstNam} lName={lstNam} uMail={userMail} uImg={userImage} partner={partner} userid={userid} back_auth={back_auth} chatService={chatService}/>
     </div>
   );
 }

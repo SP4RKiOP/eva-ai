@@ -42,11 +42,13 @@ interface ChatHistoryProps {
   partner: string;
   chatId: string | undefined;
   chatService: ChatService;
+  getuId_token: () => Promise<void>;
+  back_auth: string;
   onNewChatClick: () => void;
   onOldChatClick: (iD?: string) => void;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, userImage, partner, chatId, chatService, onNewChatClick, onOldChatClick }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, userImage, partner, chatId, chatService, getuId_token, back_auth, onNewChatClick, onOldChatClick }) => {
   const { chatHistoryVisible } = useVisibility();
   const { toggleChatHistoryVisibility } = useVisibility();
   const [chatTitles, setChatTitles] = useState<ChatTitle[]>([]); // State to store chat titles
@@ -55,29 +57,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
   const [title, setTitle] = useState("");
   const fetchedRef = useRef(false);
   const nodeRef = React.useRef(null);
-  const getuId_token = async () => {
-    const userData = {
-      emailId: uMail,
-      firstName: firstName,
-      lastName: lastName,
-      partner: partner,
-    };
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Failed to send user data to the API");
-          }
-          window.localStorage.setItem('back_auth', response.headers.get('authorization') as string);
-          // add back_auth to session user data
-          return response.text();
-        })
-  };
+
   const handleLogout = async () => {
     window.localStorage.clear();
     window.localStorage.clear();
@@ -88,11 +68,12 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
     fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversation/${chatId}/?title=${newTitle}`, {
       method: "PATCH",
       headers: {
-        "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+        "Authorization": `Bearer ${back_auth}`
       },
-    }).then((res) => {
+    }).then(async (res) => {
       if(res.status === 401) {
-        getuId_token();
+        await getuId_token();
+        return handleRename(chatId, newTitle);
       }else if (res.status === 204) {
         toast({
           description: "Chat title updated successfully",
@@ -111,12 +92,13 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+        "Authorization": `Bearer ${back_auth}`
       },
       body: JSON.stringify({ delete: true }),
-    }).then((res) => {
+    }).then(async (res) => {
       if(res.status === 401) {
-        getuId_token();
+        await getuId_token();
+        return handleDelete(chatId);
       }else if (res.status === 204) {
         toast({
           description: "Chat removed",
@@ -132,11 +114,11 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+            "Authorization": `Bearer ${back_auth}`
           },
         });
         if (response.status == 401) {
-          getuId_token();
+          await getuId_token();
           return getConversations();
         }
         const data = await response.json();

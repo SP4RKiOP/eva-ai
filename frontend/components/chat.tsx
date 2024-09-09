@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { ChatService } from '@/lib/service';
 import { useSession } from "next-auth/react";
-import { CodeBlock } from './ui/codeblock';
+import { CodeBlock, generateRandomString } from './ui/codeblock';
 import { MemoizedReactMarkdown } from './markdown';
 import LoadingSpinner from './ui/loading-spinner';
 interface ChatProps {
@@ -20,6 +20,8 @@ interface ChatProps {
     uMail: string;
     uImg: string;
     partner: string;
+    userid?: string;
+    back_auth: string;
     chatService: ChatService;
 }
 
@@ -30,12 +32,12 @@ interface Message {
 }
 
 
-const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uImg, partner}) => {
-    const { data: session, status } = useSession();
-    const [userId, setUserId] = useState<string | null>(null);
+const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uImg, partner, userid, back_auth}) => {
+    const { data: session, status, update } = useSession();
     const [messages, setMessages] = useState<Message[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
     const [loadingConversaion, setloadingConversaion] = useState<boolean>(false);
+    // const [hastoken, sethastoken] = useState<boolean>(false);
     const getuId_token = async () => {
       const userData = {
         emailId: uMail,
@@ -43,7 +45,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         lastName: lName,
         partner: partner,
       };
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+        var response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -54,7 +56,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             if (!response.ok) {
               throw new Error("Failed to send user data to the API");
             }
-            window.localStorage.setItem('back_auth', response.headers.get('authorization') as string);
+            update({ back_auth: response.headers.get('authorization') as string });
             // add back_auth to session user data
             return response.text();
           })
@@ -79,25 +81,25 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+                    "Authorization": `Bearer ${back_auth}`
                 },
                 body: JSON.stringify({
-                    userId: userId,
+                    userId: userid,
                     modelId: chatService.selectedModelId$.value,
                     userInput: text,
                     chatId: currentChatId
                 })
             });
             if (response.status == 401 || !response.ok) {
-                getuId_token();
+                await getuId_token();
                 response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                   method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',
-                      "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+                      "Authorization": `Bearer ${back_auth}`
                   },
                   body: JSON.stringify({
-                      userId: userId,
+                      userId: userid,
                       modelId: chatService.selectedModelId$.value,
                       userInput: text,
                       chatId: currentChatId
@@ -161,7 +163,49 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    // if(userid){
+    //   console.log("User id: ", userid);
+    //   console.log(chatService.isConnectionConnected(), !chatService.roomJoined$.value);
+    //   if(chatService.isConnectionConnected() && !chatService.roomJoined$.value) {
+    //     console.log("Joining chat...");
+    //     chatService.joinChat(userid);
+    //   }
+    // }
 
+    if(userid==null && status=='authenticated') {
+      
+      const userData = {
+        emailId: uMail,
+        firstName: fName,
+        lastName: lName,
+        partner: partner,
+      };
+      // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+      // Send userData to your API endpoint
+      fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to send user data to the API");
+          }
+          update({ back_auth: response.headers.get('authorization') as string });
+          // add back_auth to session user data
+          return response.text();
+        })
+        .then(async (data) => {
+          update({ userid: data as string });
+          window.localStorage.setItem("userId", data as string);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    }
+    
     // Fetch latest chat history
     if (currentChatId && messages.length === 0) {
       try{
@@ -169,7 +213,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversation/${currentChatId}`, {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${window.localStorage.getItem('back_auth')}`
+            "Authorization": `Bearer ${back_auth}`
           },
         }
         )
@@ -197,42 +241,6 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
       }
     }
 
-    if((window.localStorage.getItem('userId')==null || window.localStorage.getItem('userId')?.length==0) && status=='authenticated') {
-      
-      const userData = {
-        emailId: uMail,
-        firstName: fName,
-        lastName: lName,
-        partner: partner,
-      };
-      // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-      // Send userData to your API endpoint
-      fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Failed to send user data to the API");
-          }
-          window.localStorage.setItem('back_auth', response.headers.get('authorization') as string);
-          // add back_auth to session user data
-          return response.text();
-        })
-        .then(async (data) => {
-          window.localStorage.setItem('userId', data as string);
-          setUserId(data as string);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    }else {
-      setUserId(window.localStorage.getItem('userId') as string);
-    }
-
     const subscription = chatService.msgs$.subscribe((msgs) => {
       if(currentChatId!==undefined) {
         if (msgs && msgs[currentChatId]) {
@@ -254,11 +262,11 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             });
           }
       }else {
-        if (msgs && msgs[userId || '']) {
+        if (msgs && msgs[userid || '']) {
             // console.log('msgs:', msgs[userId || ''].join(''));
             const newMessage: Message = {
               role: "assistant", // Assuming all messages from Redis are from assistant
-              text: msgs[userId || ''].join(''),
+              text: msgs[userid || ''].join(''),
             };
             setMessages((prevMessages) => {
               // Check if the last message is from the assistant and update it
@@ -279,19 +287,19 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     return () => {
       subscription.unsubscribe(); document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [chatService, currentChatId, userId]);
+  }, [currentChatId, session]);
 
     
 
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
-                <ChatHistory firstName={fName} lastName={lName} userImage={uImg} uMail={uMail} partner={partner} chatId={currentChatId} chatService={chatService} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
+                <ChatHistory firstName={fName} lastName={lName} userImage={uImg} uMail={uMail} partner={partner} chatId={currentChatId} chatService={chatService} getuId_token={getuId_token} back_auth={back_auth} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
                 <div className="relative flex-1 flex-col overflow-hidden">
                     <div className='h-screen w-full flex-1 overflow-auto transition-width'>
                         <Sidebar/>
                         <div className="flex h-screen flex-col">
-                            <HeaderMobile service={chatService} onNewChatClick={() => handleNewChat()} getuId_token={getuId_token}/><HeaderDesktop service={chatService} getuId_token={getuId_token}/>
+                            <HeaderMobile service={chatService} onNewChatClick={() => handleNewChat()} getuId_token={getuId_token} back_auth={back_auth} /><HeaderDesktop service={chatService} getuId_token={getuId_token} back_auth={back_auth} />
                             <div className='flex flex-col-reverse h-full overflow-y-auto'>
                                 <div className="translateZ(0px)">
                                 {loadingConversaion ? <LoadingSpinner show={true} /> : (messages.length === 0) ? <Greet /> : 
