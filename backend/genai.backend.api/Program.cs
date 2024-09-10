@@ -1,5 +1,6 @@
 using Cassandra;
 using genai.backend.api.Hub;
+using genai.backend.api.Middlewares;
 using genai.backend.api.Models;
 using genai.backend.api.Plugins;
 using genai.backend.api.Services;
@@ -109,13 +110,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+
 // Configure the HTTP request pipeline.
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "GenAI Backend API V1");
-    c.RoutePrefix = string.Empty;
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "GenAI Backend API V1");
+        c.RoutePrefix = string.Empty;
+    });
+}
 
 app.UseHttpsRedirection();
 
@@ -125,7 +130,7 @@ app.MapHub<ChatHub>(pattern: "/hub").AllowAnonymous();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseMiddleware<RateLimitingMiddleware>();
 app.MapControllers();
 
 app.Run();

@@ -5,8 +5,8 @@ using System.Security.Claims;
 
 namespace genai.backend.api.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class SemanticController : Controller
     {
         private readonly SemanticService _semanticService;
@@ -35,9 +35,8 @@ namespace genai.backend.api.Controllers
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var jwtToken = tokenHandler.ReadJwtToken(token);
 
-                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid");
 
-                var userId = userIdClaim.Value;
+                var userId = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid").Value;
                 // Check if the 'question' property exists in the request body
                 if (requestBody != null && !string.IsNullOrEmpty(requestBody.userInput))
                 {
@@ -64,7 +63,7 @@ namespace genai.backend.api.Controllers
             {
                 // Log the exception and return internal server error
                 Console.WriteLine($"Internal server error: {ex.Message}");
-                return StatusCode(500, $"Internal server error.{ex.Message}");
+                return StatusCode(500, $"{ex.Message}");
             }
         }
 

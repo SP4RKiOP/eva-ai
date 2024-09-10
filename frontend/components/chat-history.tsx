@@ -108,7 +108,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
   };
   
   useEffect(() => {
-    const getConversations = async (): Promise<void> => {
+    const getConversations = async (newToken?: void): Promise<void> => {
       try{
         const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/conversations`, {
           method: "GET",
@@ -118,8 +118,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
           },
         });
         if (response.status == 401) {
-          await getuId_token();
-          return getConversations();
+          const newToken = await getuId_token();
+          return getConversations(newToken);
         }
         const data = await response.json();
         if(data!=null && data.length!= 0) {

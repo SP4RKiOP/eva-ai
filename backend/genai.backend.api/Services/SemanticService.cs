@@ -65,7 +65,7 @@ namespace genai.backend.api.Services
 
                 if (!isModelSubscribed)
                 {
-                    modelId = _configuration.GetValue<Guid>("DefaultModelId");
+                    throw new Exception("Either Model is not available or you are not subscribed to it.");
                 }
                 var GptModel = await _cache.GetOrCreateAsync($"model-details-{modelId}", async entry =>
                 {
@@ -94,7 +94,7 @@ namespace genai.backend.api.Services
                 var chatCompletion = chatKernel.GetRequiredService<IChatCompletionService>();
                 if (chatId != null)
                 {
-                    await ContinueExistingChat(chatKernel, chatCompletion, userId, Guid.Parse(chatId), userInput);
+                    ContinueExistingChat(chatKernel, chatCompletion, userId, Guid.Parse(chatId), userInput);
                     return null;
                 }
                 else
@@ -281,7 +281,7 @@ namespace genai.backend.api.Services
                 var updatedJsonChatHistory = JsonSerializer.Serialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(newChatHistory);
                 var newTitle = await NewChatTitle(chatKernel, newChatHistory.ElementAt(1).Content.ToString());
                 // Prepare and execute the CQL query to insert new chat history
-                var insertStatement = "INSERT INTO chathistory (userid, chatid, chattitle, chathistoryjson, createdon, nettokenconsumption) VALUES (?, ?, ?, ?, ?, ?)";
+                var insertStatement = "INSERT INTO chathistory (userid, chatid, chattitle, chathistoryjson, createdon, nettokenconsumption) VALUES (?, ?, ?, ?, ?, ?) IF NOT EXISTS";
                 var preparedStatement = _session.Prepare(insertStatement);
                 var boundStatement = preparedStatement.Bind(userId, newChatId, newTitle, Encoding.UTF8.GetBytes(updatedJsonChatHistory), DateTime.UtcNow, completionToken);
                 await _session.ExecuteAsync(boundStatement).ConfigureAwait(false);
@@ -295,7 +295,7 @@ namespace genai.backend.api.Services
                     await _responseStream.PartialResponse(userId.ToString(), "Your query got a filtered content warning,\r\nPlease remove any words showing **HATE, SELF HARM, SEXUAL, VIOLENCE** from your query and rewrite it.");
                 }
                 await _responseStream.PartialResponse(userId.ToString(), $"Error starting new chat: {ex.InnerException?.Message ?? ex.Message}");
-                throw;
+                throw new Exception(ex.InnerException?.Message ?? ex.Message);
             }
         }
 

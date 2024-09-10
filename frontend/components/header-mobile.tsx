@@ -24,7 +24,7 @@ const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick, getuId_t
   const fetchedRef = useRef(false);
   
   useEffect(() => {
-    const getModels = async (): Promise<void> => {
+    const getModels = async (newToken: void): Promise<void> => {
       try{
         const response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/models`, {
           method: "GET",
@@ -34,8 +34,8 @@ const HeaderMobile: React.FC<HeaderProps> = ({ service, onNewChatClick, getuId_t
           },
         });
         if (response.status == 401) {
-          await getuId_token();
-          return getModels();
+          const newToken = await getuId_token();
+          return getModels(newToken);
         }
         const data = await response.text();
         if(data!=null && data.length!= 0) {

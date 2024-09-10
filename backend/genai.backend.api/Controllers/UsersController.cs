@@ -4,11 +4,13 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using genai.backend.api.Middlewares;
 
 namespace genai.backend.api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [RateLimit(requestsPerMinute: 60)]
     public class UsersController : ControllerBase
     {
         private readonly UserService _userService;

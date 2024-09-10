@@ -58,7 +58,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             }
             update({ back_auth: response.headers.get('authorization') as string });
             // add back_auth to session user data
-            return response.text();
+            return response.headers.get('authorization') as string;
           })
     };
     const handleMessageSubmit = async (text: string) => {
@@ -84,22 +84,20 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                     "Authorization": `Bearer ${back_auth}`
                 },
                 body: JSON.stringify({
-                    userId: userid,
                     modelId: chatService.selectedModelId$.value,
                     userInput: text,
                     chatId: currentChatId
                 })
             });
             if (response.status == 401 || !response.ok) {
-                await getuId_token();
+                const newToken = await getuId_token();
                 response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                   method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',
-                      "Authorization": `Bearer ${back_auth}`
+                      "Authorization": `Bearer ${newToken}`
                   },
                   body: JSON.stringify({
-                      userId: userid,
                       modelId: chatService.selectedModelId$.value,
                       userInput: text,
                       chatId: currentChatId
@@ -199,7 +197,6 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         })
         .then(async (data) => {
           update({ userid: data as string });
-          window.localStorage.setItem("userId", data as string);
         })
         .catch((error) => {
           console.error("Error:", error);

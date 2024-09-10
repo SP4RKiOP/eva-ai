@@ -1,4 +1,5 @@
-﻿using genai.backend.api.Models;
+﻿using Cassandra;
+using genai.backend.api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
@@ -37,27 +38,37 @@ namespace genai.backend.api.Services
             {
                 // User doesn't exist, so create a new one
                 var userId = Guid.NewGuid();
-                var userInsertStatement = "INSERT INTO users (userid, firstname, lastname, email, partner) VALUES (?, ?, ?, ?, ?)";
+                var defaultRole = "user";
+                var userInsertStatement = "INSERT INTO users (userid, role, firstname, lastname, email, partner) VALUES (?, ?, ?, ?, ?, ?) IF NOT EXISTS";
                 var userInsertPreparedStatement = _session.Prepare(userInsertStatement);
-                await _session.ExecuteAsync(userInsertPreparedStatement.Bind(userId, firstName, lastName, emailId, partner)).ConfigureAwait(false);
+                var resultSet = await _session.ExecuteAsync(userInsertPreparedStatement.Bind(userId, defaultRole, firstName, lastName, emailId, partner)).ConfigureAwait(false);
+                var appliedInfo = resultSet.FirstOrDefault();
 
-                // Create a default entry for UserSubscriptions
-                // Assuming default model ID and available model are fetched or set beforehand
-                var defaultModelId = _configuration.GetValue<Guid>("DefaultModelId");
-                var defaultModel = "DefaultModel"; // Placeholder, fetch or define as needed
+                if (appliedInfo != null && appliedInfo.GetValue<bool>("[applied]"))
+                {
+                    // Create a default entry for UserSubscriptions
+                    var defaultModelId = _configuration.GetValue<Guid>("DefaultModelId");
+                    var subscriptionInsertStatement = "INSERT INTO usersubscriptions (userid, modelid) VALUES (?, ?) IF NOT EXISTS";
+                    var subscriptionInsertPreparedStatement = _session.Prepare(subscriptionInsertStatement);
+                    await _session.ExecuteAsync(subscriptionInsertPreparedStatement.Bind(userId, defaultModelId)).ConfigureAwait(false);
 
-                var subscriptionInsertStatement = "INSERT INTO usersubscriptions (userid, modelid) VALUES (?, ?)";
-                var subscriptionInsertPreparedStatement = _session.Prepare(subscriptionInsertStatement);
-                await _session.ExecuteAsync(subscriptionInsertPreparedStatement.Bind(userId, defaultModelId)).ConfigureAwait(false);
-                return new { UserId = userId, Token = GenerateJwtToken(userId) };
+                    return new { UserId = userId, Token = GenerateJwtToken(userId, defaultRole) };
+                }
+                else
+                {
+                    // If the insert was not applied, it means the user was created by another request
+                    user = await _session.ExecuteAsync(userPreparedStatement.Bind(emailId, partner)).ConfigureAwait(false);
+                    userRow = user.FirstOrDefault();
+                    return new { UserId = userRow.GetValue<Guid>("userid"), Token = GenerateJwtToken(userRow.GetValue<Guid>("userid"), userRow.GetValue<string>("role")) };
+                }
             }
             else
             {
-                return new { UserId = userRow.GetValue<Guid>("userid"), Token = GenerateJwtToken(userRow.GetValue<Guid>("userid")) };
+                return new { UserId = userRow.GetValue<Guid>("userid"), Token = GenerateJwtToken(userRow.GetValue<Guid>("userid"), userRow.GetValue<string>("role")) };
             }
 
         }
-        private string GenerateJwtToken(Guid userId)
+        private string GenerateJwtToken(Guid userId, string role)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]);
@@ -65,7 +76,8 @@ namespace genai.backend.api.Services
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+                    new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                    new Claim(ClaimTypes.Role, role)
                 }),
                 Expires = DateTime.UtcNow.AddDays(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
