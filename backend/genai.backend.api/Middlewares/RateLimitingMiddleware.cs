@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace genai.backend.api.Middlewares
@@ -47,7 +48,7 @@ namespace genai.backend.api.Middlewares
             }
             if (user.Identity?.IsAuthenticated == true)
             {
-                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = user.FindFirst(JwtRegisteredClaimNames.Sid)?.Value;
                 if (userId != null)
                 {
                     if (rateLimitAttribute != null)

@@ -22,15 +22,15 @@ interface IndexPageProps {
    // Create an instance of ChatService
    const chatService = useMemo(() => ChatService.getInstance(), []);
    
-   // Redirect if session is null
-   useEffect(() => {
-    if (status === 'unauthenticated' || !session) {
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      console.log("Redirecting to login page");
       router.push('/login');
     }
-    if(session){
-      chatService.userId$.next(userid as string);
+    if (status === 'authenticated') {
+      chatService.authToken$.next(back_auth);
     }
-  }, [status, session, router]); // Depend on status and session to trigger effect when they change
+  }, [status]);
 
    return <Chat chatId={params.id} fName={fstNam} lName={lstNam} uMail={userMail} uImg={userImage} partner={partner} userid={userid} back_auth={back_auth} chatService={chatService}/>
  }

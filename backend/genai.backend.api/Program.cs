@@ -27,7 +27,6 @@ builder.Services.AddAuthentication(x =>
     x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(x =>
 {
-    x.RequireHttpsMetadata = false;
     x.SaveToken = true;
     x.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
@@ -36,6 +35,22 @@ builder.Services.AddAuthentication(x =>
         ValidateIssuer = false,
         ValidateAudience = false,
         ClockSkew = TimeSpan.Zero
+    };
+    x.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+
+            // If the request is for our hub...
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/hub")))
+            {
+                // Read the token out of the query string
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 builder.Services.AddAuthorization(options =>
@@ -126,11 +141,10 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
-app.MapHub<ChatHub>(pattern: "/hub").AllowAnonymous();
-
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<RateLimitingMiddleware>();
 app.MapControllers();
+app.MapHub<ChatHub>(pattern: "/hub");
 
 app.Run();

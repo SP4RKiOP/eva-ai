@@ -16,15 +16,16 @@ export default function HomePage() {
   const back_auth = (session as any)?.back_auth;
   const router = useRouter();
   const chatService = useMemo(() => ChatService.getInstance(), []);
-
   useEffect(() => {
-    if (status === 'unauthenticated' || !session) {
+    if (status === 'unauthenticated') {
+      console.log("Redirecting to login page");
       router.push('/login');
     }
-    if(session){
-      chatService.userId$.next(userid as string);
+    if (status === 'authenticated') {
+      chatService.authToken$.next(back_auth);
     }
-  }, [status, session, router]); 
+  }, [status]);
+
   return (
     <div>
       <Chat fName={fstNam} lName={lstNam} uMail={userMail} uImg={userImage} partner={partner} userid={userid} back_auth={back_auth} chatService={chatService}/>

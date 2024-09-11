@@ -27,18 +27,8 @@ namespace genai.backend.api.Controllers
         {
             try
             {
-                var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
-
-                var token = authHeader.Substring("Bearer ".Length).Trim();
-
-                // Decode the JWT token to get the userId
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var jwtToken = tokenHandler.ReadJwtToken(token);
-
-
-                var userId = jwtToken.Claims.FirstOrDefault(c => c.Type == "nameid").Value;
-                // Check if the 'question' property exists in the request body
-                if (requestBody != null && !string.IsNullOrEmpty(requestBody.userInput))
+                var userId = HttpContext.User.FindFirst(JwtRegisteredClaimNames.Sid)?.Value;
+                if (userId != null && requestBody != null && !string.IsNullOrEmpty(requestBody.userInput))
                 {
                     var ChatId = await _semanticService.semanticChatAsync(Guid.Parse(userId), requestBody.modelId, requestBody.userInput, requestBody.chatId);
 
@@ -53,16 +43,12 @@ namespace genai.backend.api.Controllers
                         return Ok();
                     }
                 }
-                else
-                {
-                    // Return a bad request response if the request body is invalid
-                    return BadRequest("Invalid request body. 'question' property not found or empty.");
-                }
+                return BadRequest();
             }
             catch (Exception ex)
             {
                 // Log the exception and return internal server error
-                Console.WriteLine($"Internal server error: {ex.Message}");
+                Console.WriteLine($"Semantic Controller: {ex.Message}");
                 return StatusCode(500, $"{ex.Message}");
             }
         }

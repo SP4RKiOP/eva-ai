@@ -76,7 +76,7 @@ namespace genai.backend.api.Services
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Sid, userId.ToString()),
                     new Claim(ClaimTypes.Role, role)
                 }),
                 Expires = DateTime.UtcNow.AddDays(1),

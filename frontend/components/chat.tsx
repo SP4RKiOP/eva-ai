@@ -148,27 +148,6 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     };
 
     useEffect(() => {
-      // Function to handle visibility change
-      const handleVisibilityChange = async () => {
-        if (document.visibilityState === 'visible') {
-            // console.log("Page is now visible. Checking connection state...");
-            if (!chatService.isConnectionConnected()) {
-              // console.log("Connection is not active. Attempting to reconnect...");
-              await chatService.reconnect();
-            } else {
-              // console.log("Connection is active. No need to reconnect.");
-            }
-        }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    // if(userid){
-    //   console.log("User id: ", userid);
-    //   console.log(chatService.isConnectionConnected(), !chatService.roomJoined$.value);
-    //   if(chatService.isConnectionConnected() && !chatService.roomJoined$.value) {
-    //     console.log("Joining chat...");
-    //     chatService.joinChat(userid);
-    //   }
-    // }
 
     if(userid==null && status=='authenticated') {
       
@@ -234,7 +213,6 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
       } catch (error) {
         console.error("Error fetching chat history:", error);
         setloadingConversaion(false);
-      } finally {
       }
     }
 
@@ -282,9 +260,9 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     });
 
     return () => {
-      subscription.unsubscribe(); document.removeEventListener("visibilitychange", handleVisibilityChange);
+      subscription.unsubscribe(); 
     };
-  }, [currentChatId, session]);
+  }, [currentChatId]);
 
     
 

@@ -4,29 +4,31 @@ import { BehaviorSubject, Subject } from 'rxjs';
 export class ChatService {
   private static instance: ChatService;
   private connection: signalR.HubConnection = new signalR.HubConnectionBuilder()
-  .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/hub")
+  .withUrl(process.env.NEXT_PUBLIC_BLACKEND_API_URL + "/hub", {
+    accessTokenFactory: () => this.authToken$.value
+  })
   .withAutomaticReconnect()
   .withKeepAliveInterval(5000)
+  .configureLogging(signalR.LogLevel.None)
   .build();
 
   public msgs$ = new BehaviorSubject<any>([]);
   public msgs: { [chatId: string]: string[] } = {};
   public endStream$ = new Subject<void>();
-  // public chatTitles$ = new BehaviorSubject<any>([]);
-  // public chatTitles: any[]=[];
-  // public availableModels$ = new BehaviorSubject<any>([]);
-  // public availableModels: any[]=[];
   public selectedModelId$ = new BehaviorSubject<number>(1);
   public HubConnectionState$ = new BehaviorSubject<string>('');
-  public roomJoined$ = new BehaviorSubject<boolean>(false);
   public userId$ = new BehaviorSubject<string>('');
+  public authToken$ = new BehaviorSubject<string>('');
 
   private constructor() {
-    this.start();
-    this.connection.onreconnected(() => {
-      // console.log("Reconnected. Attempting to rejoin chat.");
-      this.joinChat();
+    let previousAuthToken = '';
+    this.authToken$.subscribe((newAuthToken) => {
+      if (newAuthToken !== previousAuthToken) {
+        previousAuthToken = newAuthToken;
+        this.reconnect();
+      }
     });
+
     // Inside the ChatService class, update the StreamMessage event handler
     this.connection.on("StreamMessage", (message: string) => {
       try {
@@ -51,19 +53,6 @@ export class ChatService {
         this.endStream$.next();
       }, 500); // 1000 milliseconds = 1 seconds
     });
-    // this.connection.on("ChatTitles", (chatTitles: any) => {
-    //   this.chatTitles = [...this.chatTitles, chatTitles];
-    //   this.chatTitles$.next(this.chatTitles);
-    // });
-    // this.connection.on("AvailableModels", (availableModels: any) => {
-    //   this.availableModels = availableModels;
-    //   this.availableModels$.next(this.availableModels);
-    // });
-    // this.connection.on("ClearChatTitles", () => {
-    //   window.localStorage.removeItem("chatTitles");
-    //   this.chatTitles = [];
-    //   this.chatTitles$.next(this.chatTitles);
-    // });
 }
 public static getInstance(): ChatService {
   if (!ChatService.instance) {
@@ -74,57 +63,32 @@ public static getInstance(): ChatService {
 public isConnectionConnected(): boolean {
   return this.connection.state === signalR.HubConnectionState.Connected;
 }
+
 //start connection
-public async start(){
+public async start() {
+  if (this.connection.state === signalR.HubConnectionState.Disconnected && this.authToken$.value!=null) {
     try {
-        if (this.connection.state === signalR.HubConnectionState.Disconnected) {
-          await this.connection.start()
-        .then(() => {
-            // console.log("SignalR Connected.");
-            this.HubConnectionState$.next("Connected"); // Set the HubConnectionState to "Connected";
-            this.joinChat();
-        });
-        }
+      await this.connection.start();
+      //console.log("SignalR Connected.");
+      this.HubConnectionState$.next("Connected");
     } catch (err) {
-        console.log(err);
+      console.error("Error starting SignalR connection:", err);
     }
+  }
 }
 //reconnect
 public async reconnect(){
-    if (this.connection.state === signalR.HubConnectionState.Disconnected) {
-      await this.stop();
-      await this.start();
-      // console.log("Reconnected successfully.");
-    }
+  if (this.connection.state === signalR.HubConnectionState.Connected) {
+    await this.stop();
+  }
+    await this.start();
 }
 
 //stop connection
 public async stop(){
     this.connection.stop();
     this.HubConnectionState$.next("Disconnected"); // Set the HubConnectionState to "Disconnected";
-    this.roomJoined$.next(false);
     // console.log("SignalR Disconnected.");
 }
 
-//join chatId
-public async joinChat(userId?: string) {
-  try{
-    if(userId && this.isConnectionConnected()) {
-      await this.connection.invoke("JoinRoom", { userId });
-      this.roomJoined$.next(true);
-      // console.log("User joined successfully.", userId);
-    } else if (this.userId$.value && this.isConnectionConnected()) {
-      const userId = this.userId$.value;
-      await this.connection.invoke("JoinRoom", { userId });
-      this.roomJoined$.next(true);
-      // console.log("User joined successfully.", userId);
-    }
-  } catch (err) {
-    console.log("Join Room Error: ",err);
-  }
-}
-//leave chatId
-public async leaveChat(chatId: string){
-    return this.connection.stop();
-}
 }

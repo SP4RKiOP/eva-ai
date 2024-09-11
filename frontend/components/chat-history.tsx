@@ -129,6 +129,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
           } else {
             data.sort((a: ChatTitle, b: ChatTitle) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
             setChatTitles(data);
+            window.localStorage.setItem('chatTitles', JSON.stringify(data));
           }
         } else {
           // Handle empty response
@@ -152,7 +153,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
     const subscription = chatService.endStream$.subscribe(() => {
       setTimeout(() => {
         getConversations();
-      }, 500);
+      }, 1000);
     });
     // Cleanup subscription on component unmount
     return () => subscription.unsubscribe();
