@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState, useRef} from 'react';
 import Input from './input';
 import ChatHistory from './chat-history';
 import Sidebar from './sidebar';
@@ -13,6 +13,7 @@ import { useSession } from "next-auth/react";
 import { CodeBlock, generateRandomString } from './ui/codeblock';
 import { MemoizedReactMarkdown } from './markdown';
 import LoadingSpinner from './ui/loading-spinner';
+import { ButtonScrollToBottom } from './ui/button-scroll-to-bottom';
 interface ChatProps {
     chatId?: string;
     fName: string;
@@ -37,6 +38,13 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     const [messages, setMessages] = useState<Message[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
     const [loadingConversaion, setloadingConversaion] = useState<boolean>(false);
+    const [isAssistantTyping, setAssistantTyping] = useState<boolean>(false);
+    const [userInteracted, setUserInteracted] = useState<boolean>(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setUserInteracted(false);
+  };
     // const [hastoken, sethastoken] = useState<boolean>(false);
     const getuId_token = async () => {
       const userData = {
@@ -45,14 +53,13 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
         lastName: lName,
         partner: partner,
       };
-        var response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+        await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(userData),
-        })
-          .then((response) => {
+        }).then((response) => {
             if (!response.ok) {
               throw new Error("Failed to send user data to the API");
             }
@@ -76,6 +83,8 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                 isPlaceholder: true
             };
             setMessages((prevMessages) => [...prevMessages, placeholderMessage]);
+
+            setAssistantTyping(true);
             
             var response = await fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Semantic`, {
                 method: 'POST',
@@ -123,7 +132,7 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
             </div>
             <div className="flex items-center w-full ">
                 <div className="h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-full"></div>
-                        <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-full"></div>
+                <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-full"></div>
                 <div className="h-2.5 ms-2 bg-gray-300 rounded-full dark:bg-gray-600 w-24"></div>
             </div>
             <div className="flex items-center w-full max-md:hidden">
@@ -138,17 +147,18 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
       setMessages([]);
       window.history.pushState({}, '', `/`);
       setCurrentChatId(undefined);
+      setAssistantTyping(false);
     };
     const handleOldChat = async (iD?: string) => {
       if(currentChatId !== iD) {
         setMessages([]);
         window.history.pushState({}, '', `/c/${iD}`);
         setCurrentChatId(iD);
+        setAssistantTyping(false);
       }
     };
 
     useEffect(() => {
-
     if(userid==null && status=='authenticated') {
       
       const userData = {
@@ -259,19 +269,42 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
       }
     });
 
+    const endStreamSub = chatService.endStream$.subscribe(() => {
+      setAssistantTyping(false);
+    })
+
     return () => {
-      subscription.unsubscribe(); 
+      subscription.unsubscribe();
+      endStreamSub.unsubscribe(); 
     };
   }, [currentChatId]);
 
-    
+  useEffect(() => {
+    const handleUserInteraction = () => {
+        setUserInteracted(true);
+    };
+
+    window.addEventListener('scroll', handleUserInteraction);
+    window.addEventListener('click', handleUserInteraction);
+
+    return () => {
+        window.removeEventListener('scroll', handleUserInteraction);
+        window.removeEventListener('click', handleUserInteraction);
+    };
+}, []);
+
+  useEffect(() => {
+      if (!userInteracted) {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+  }, [messages, userInteracted]);
 
     return (
         <VisibilityProvider>
             <div className="relative z-0 flex h-screen w-full overflow-hidden">
                 <ChatHistory firstName={fName} lastName={lName} userImage={uImg} uMail={uMail} partner={partner} chatId={currentChatId} chatService={chatService} getuId_token={getuId_token} back_auth={back_auth} onNewChatClick={() => handleNewChat()} onOldChatClick={(iD? : string) => handleOldChat(iD)}/>
                 <div className="relative flex-1 flex-col overflow-hidden">
-                    <div className='h-screen w-full flex-1 overflow-auto transition-width'>
+                    <div className='h-screen w-full flex-1 overflow-auto'>
                         <Sidebar/>
                         <div className="flex h-screen flex-col">
                             <HeaderMobile service={chatService} onNewChatClick={() => handleNewChat()} getuId_token={getuId_token} back_auth={back_auth} /><HeaderDesktop service={chatService} getuId_token={getuId_token} back_auth={back_auth} />
@@ -356,9 +389,11 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
                                               
                                         ))
                                     )}
+                                    <div ref={messagesEndRef} />
                                 </div>
                             </div>
-                            <Input onSubmit={handleMessageSubmit} messagesLength={messages.length} showSampleInput={loadingConversaion}/>
+                            {/* <ButtonScrollToBottom isAtBottom={userInteracted} scrollToBottom={scrollToBottom} /> */}
+                            <Input isActive={isAssistantTyping} onSubmit={handleMessageSubmit} messagesLength={messages.length} showSampleInput={loadingConversaion}/>
                         </div>
                     </div>
                 </div>

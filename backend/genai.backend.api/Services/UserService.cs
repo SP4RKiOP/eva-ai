@@ -29,7 +29,7 @@ namespace genai.backend.api.Services
         public async Task<Object> GetCreateUser(string emailId, string? firstName, string? lastName, string partner)
         {
             // Attempt to fetch the user and their subscribed models in a single query
-            var userSelectStatement = "SELECT * FROM users WHERE email = ? AND partner = ?";
+            var userSelectStatement = "SELECT userid, role FROM users WHERE email = ? AND partner = ? LIMIT 1";
             var userPreparedStatement = _session.Prepare(userSelectStatement);
             var user = await _session.ExecuteAsync(userPreparedStatement.Bind(emailId, partner)).ConfigureAwait(false);
             var userRow = user.FirstOrDefault();

@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.SignalR;
+using genai.backend.api.Middlewares;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace genai.backend.api.Hub
 {
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RateLimit(requestsPerMinute: 60)]
     public class ChatHub : Microsoft.AspNetCore.SignalR.Hub
     {
         private readonly IDictionary<string, ChatHubConnection> _connection;

@@ -63,9 +63,9 @@ const CodeBlock: FC<Props> = memo(({ language, value }) => {
     if (typeof window === 'undefined') {
       return
     }
-    const fileExtension = programmingLanguages[language] || '.file'
+    const fileExtension = language ? `.${language}` : '.file'
     const suggestedFileName = `file-${generateRandomString(
-      3,
+      4,
       true
     )}${fileExtension}`
     const fileName = window.prompt('Enter file name' || '', suggestedFileName)
@@ -96,7 +96,7 @@ const CodeBlock: FC<Props> = memo(({ language, value }) => {
     <div className="relative w-full font-sans codeblock bg-zinc-950">
       <div className="flex items-center justify-between w-full px-6 pr-4 bg-zinc-800 text-zinc-100">
         <span className="text-xs lowercase">{language}</span>
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 sticky">
           <Button
             variant="ghost"
             className="hover:bg-zinc-800 focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"

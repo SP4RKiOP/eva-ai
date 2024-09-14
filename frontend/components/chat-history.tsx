@@ -160,7 +160,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ uMail, firstName, lastName, u
   }, [chatService]); 
 
   return (
-    <div className={`w-80 inset-0 z-50 md:flex-shrink-0 md:overflow-x-hidden md:w-64 max-md:fixed ${chatHistoryVisible ? 'hidden md:block' : 'block md:hidden'}`}>
+    <div className={`w-80 inset-0 z-50 md:flex-shrink-0 md:overflow-x-hidden max-md:fixed transition-all ${chatHistoryVisible ? 'max-md:-translate-x-full md:block md:w-64' : 'block md:-translate-x-full md:w-0'}`}>
       <div className="md:hidden block absolute top-1 right-0 mr-2 z-50">
         <button
           type="button"

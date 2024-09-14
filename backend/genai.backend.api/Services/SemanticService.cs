@@ -185,9 +185,9 @@ namespace genai.backend.api.Services
                 //oldchatHistory.AddAssistantMessage(fullMessage.ToString());
                 // Serialize the updated chat history and prepare to update in Cassandra
                 var updatedChatHistoryJson = Encoding.UTF8.GetBytes(JsonSerializer.Serialize<Microsoft.SemanticKernel.ChatCompletion.ChatHistory>(oldchatHistory));
-                var updateStatement = "UPDATE chathistory SET chathistoryjson = ? WHERE userid = ? AND chatid = ?";
+                var updateStatement = "UPDATE chathistory SET chathistoryjson = ? , createdon = ? WHERE userid = ? AND chatid = ?";
                 var updatePreparedStatement = _session.Prepare(updateStatement);
-                var updateBoundStatement = updatePreparedStatement.Bind(updatedChatHistoryJson, userId, chatId);
+                var updateBoundStatement = updatePreparedStatement.Bind(updatedChatHistoryJson, DateTime.UtcNow, userId, chatId);
                 await _session.ExecuteAsync(updateBoundStatement).ConfigureAwait(false);
             }
             catch (Exception ex)
