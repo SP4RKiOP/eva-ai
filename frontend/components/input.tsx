@@ -61,7 +61,7 @@ const Input: React.FC<InputProps> = ({isActive, onSubmit, messagesLength, showSa
                                         id="prompt-textarea"
                                         tabIndex={0}
                                         rows={1}
-                                        placeholder="Type your message here"
+                                        placeholder={isActive? 'Eva is thinking...': 'Type your message here'}
                                         value={text}
                                         onChange={handleChange}
                                         onFocus={() => setIsTyping(true)}
@@ -80,14 +80,18 @@ const Input: React.FC<InputProps> = ({isActive, onSubmit, messagesLength, showSa
                                     </svg>
                                 </span>
                             </button>
-                            <button type="reset" 
+                            
+                            <video autoPlay loop muted playsInline className={`self-end z-50 h-8 w-8 mr-2 md:mr-2.5 m-2 md:m-2.5 object-cover ${isActive? 'block': 'hidden'}`}>
+                                <source src="./ai.webm" type='video/webm; codecs=vp9'/>
+                            </video>
+                            {/* <button type="reset" 
                             className={`self-end h-8 w-8 mr-2 md:mr-2.5 m-2 md:m-2.5 rounded-full  bg-black dark:bg-white ${isActive? 'block': 'hidden'}`}>
                                 <span className="flex justify-center" data-state="closed">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white dark:text-black">
                                     <rect x="7" y="7" width="10" height="10" rx="1.25" fill="currentColor"></rect>
                                 </svg>
                                 </span>
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                 </div>
