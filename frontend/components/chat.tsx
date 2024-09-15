@@ -159,38 +159,38 @@ const Chat: React.FC<ChatProps> = ({chatService,chatId, fName, lName, uMail, uIm
     };
 
     useEffect(() => {
-    if(userid==null && status=='authenticated') {
+    // if(userid==null && status=='authenticated') {
       
-      const userData = {
-        emailId: uMail,
-        firstName: fName,
-        lastName: lName,
-        partner: partner,
-      };
-      // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-      // Send userData to your API endpoint
-      fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Failed to send user data to the API");
-          }
-          update({ back_auth: response.headers.get('authorization') as string });
-          // add back_auth to session user data
-          return response.text();
-        })
-        .then(async (data) => {
-          update({ userid: data as string });
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    }
+    //   const userData = {
+    //     emailId: uMail,
+    //     firstName: fName,
+    //     lastName: lName,
+    //     partner: partner,
+    //   };
+    //   // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    //   // Send userData to your API endpoint
+    //   fetch(`${process.env.NEXT_PUBLIC_BLACKEND_API_URL}/api/Users/UserId`, {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify(userData),
+    //   })
+    //     .then((response) => {
+    //       if (!response.ok) {
+    //         throw new Error("Failed to send user data to the API");
+    //       }
+    //       update({ back_auth: response.headers.get('authorization') as string });
+    //       // add back_auth to session user data
+    //       return response.text();
+    //     })
+    //     .then(async (data) => {
+    //       update({ userid: data as string });
+    //     })
+    //     .catch((error) => {
+    //       console.error("Error:", error);
+    //     });
+    // }
     
     // Fetch latest chat history
     if (currentChatId && messages.length === 0) {
